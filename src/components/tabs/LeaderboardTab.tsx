@@ -81,12 +81,8 @@ export function LeaderboardTab() {
   }, [sessions, playerNames]);
 
   const biggestSessions = useMemo(() => {
-    return sessions
-        .map(session => {
-            const totalPot = Object.values(session.players).filter(v => v > 0).reduce((sum, v) => sum + v, 0);
-            return { ...session, totalPot };
-        })
-        .sort((a, b) => b.totalPot - a.totalPot)
+    return [...sessions] // Create a shallow copy to avoid mutating the original array
+        .sort((a, b) => (b.totalPot || 0) - (a.totalPot || 0))
         .slice(0, 5); // Top 5 biggest sessions
   }, [sessions]);
 
@@ -163,7 +159,7 @@ export function LeaderboardTab() {
                                             <p className="text-sm text-muted-foreground">{format(new Date(session.date), "PPP")}</p>
                                         </div>
                                     </div>
-                                    <p className="font-bold text-xl text-primary">{session.totalPot.toFixed(2)}€</p>
+                                    <p className="font-bold text-xl text-primary">{(session.totalPot || 0).toFixed(2)}€</p>
                                 </div>
                             ))}
                         </div>

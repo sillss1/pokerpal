@@ -270,6 +270,8 @@ export function SessionsTab() {
         return acc;
     }, {} as Record<string, number>);
 
+    const totalPot = Object.values(playersResult).filter(v => v > 0).reduce((sum, v) => sum + v, 0);
+
     try {
       await addSession({
         date: format(values.date, "yyyy-MM-dd"),
@@ -277,6 +279,7 @@ export function SessionsTab() {
         addedBy: values.addedBy,
         players: playersResult,
         settled: false,
+        totalPot: totalPot,
       });
       toast({
         title: "Success",
