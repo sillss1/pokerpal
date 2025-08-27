@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { initializeApp, FirebaseApp, deleteApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, writeBatch } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
-import { FirebaseConfig } from "@/lib/types";
 import { Trash2, PlusCircle, LogIn, Server } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getFirebaseConfig } from "@/lib/firebase-config";
-import { useFirebase } from "@/contexts/FirebaseProvider";
-import { FirebaseProvider } from "@/contexts/FirebaseProvider";
+import { FirebaseConfig } from "@/lib/types";
 
 // Schemas
 const joinGameSchema = z.object({
@@ -65,17 +63,14 @@ function JoinGameForm() {
             tempApp = initializeApp(firebaseConfig, `validation-join-${Date.now()}`);
             const db = getFirestore(tempApp);
             
-            const accessDocRef = doc(db, 'config', 'access');
-            const accessDocSnap = await getDoc(accessDocRef);
+            const gameDocRef = doc(db, 'homeGames', values.homeGameCode);
+            const gameDocSnap = await getDoc(gameDocRef);
 
-            if (!accessDocSnap.exists() || accessDocSnap.data().code !== values.homeGameCode) {
+            if (!gameDocSnap.exists()) {
                 throw new Error("Invalid Home Game Code.");
             }
             
-            const playerNamesDocRef = doc(db, 'config', 'playerNames');
-            const playerNamesSnap = await getDoc(playerNamesDocRef);
-            const dbPlayerNames = playerNamesSnap.exists() ? playerNamesSnap.data().names : [];
-
+            const dbPlayerNames = gameDocSnap.data().playerNames || [];
             login(values.homeGameCode, dbPlayerNames);
             toast({ title: "Success!", description: "Successfully joined the Home Game." });
 
@@ -140,22 +135,25 @@ function CreateGameForm() {
             tempApp = initializeApp(firebaseConfig, `validation-create-${Date.now()}`);
             const db = getFirestore(tempApp);
 
-            const accessDocRef = doc(db, 'config', 'access');
-            const accessDocSnap = await getDoc(accessDocRef);
+            const gameDocRef = doc(db, 'homeGames', values.homeGameCode);
+            const gameDocSnap = await getDoc(gameDocRef);
 
-            if (accessDocSnap.exists()) {
-                throw new Error("A Home Game has already been configured for this Firebase project.");
+            if (gameDocSnap.exists()) {
+                throw new Error("A Home Game with this code already exists. Please choose a different code.");
             }
 
-            // The actual write will be handled by the FirebaseProvider on the next screen
-            // We just need to set it up in auth/local storage
+            // Create the new home game document
+            await setDoc(gameDocRef, {
+                playerNames: playerNames
+            });
+
             login(values.homeGameCode, playerNames);
             toast({ title: "Home Game Created!", description: "Successfully created and joined your new Home Game." });
 
         } catch (error: any) {
             let errorMessage = "An error occurred.";
-            if (error.message.includes("already been configured")) {
-                errorMessage = "A game is already set up. Use the 'Join Game' tab or reset your Firebase data.";
+            if (error.message.includes("already exists")) {
+                errorMessage = error.message;
             } else if (error.code) {
                 errorMessage = `Firebase connection failed. Check your environment variables and Firestore rules. Error: ${error.code}`;
             }
@@ -236,10 +234,10 @@ export function AccessPage() {
                             <TabsTrigger value="create"><PlusCircle className="mr-2"/>Create Game</TabsTrigger>
                         </TabsList>
                         <TabsContent value="join" className="p-6">
-                           <FirebaseProvider><JoinGameForm /></FirebaseProvider>
+                           <JoinGameForm />
                         </TabsContent>
                         <TabsContent value="create" className="p-6">
-                           <FirebaseProvider><CreateGameForm /></FirebaseProvider>
+                           <CreateGameForm />
                         </TabsContent>
                     </Tabs>
                 )}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -58,11 +59,13 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 export function SessionsTab() {
   const { db, playerNames, sessions, loading } = useFirebase();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
+  const [homeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
 
   const formSchema = z.object({
       date: z.date(),
@@ -91,7 +94,7 @@ export function SessionsTab() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!db) return;
+    if (!db || !homeGameCode) return;
     setIsAdding(true);
     const playersResult = playerNames.reduce((acc, name) => {
         acc[name] = values[name] as number;
@@ -99,7 +102,7 @@ export function SessionsTab() {
     }, {} as Record<string, number>);
 
     try {
-      await addDoc(collection(db, "sessions"), {
+      await addDoc(collection(db, 'homeGames', homeGameCode, "sessions"), {
         date: format(values.date, "yyyy-MM-dd"),
         location: values.location,
         addedBy: values.addedBy,
@@ -126,9 +129,9 @@ export function SessionsTab() {
   }
 
   async function deleteSession(sessionId: string) {
-    if(!db) return;
+    if(!db || !homeGameCode) return;
     try {
-        await deleteDoc(doc(db, "sessions", sessionId));
+        await deleteDoc(doc(db, 'homeGames', homeGameCode, "sessions", sessionId));
         toast({
             title: "Session Deleted",
             description: "The session has been removed.",

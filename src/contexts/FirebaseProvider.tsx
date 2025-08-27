@@ -2,8 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { initializeApp, getApps, deleteApp, FirebaseApp, getApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore, writeBatch, setDoc } from 'firebase/firestore';
+import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore, setDoc } from 'firebase/firestore';
 import { FirebaseConfig, Session } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { getFirebaseConfig } from '@/lib/firebase-config';
@@ -41,12 +41,12 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   
   const [firebaseConfig] = useState<FirebaseConfig | null>(getFirebaseConfig());
-  const [storedHomeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
-  const [storedPlayerNames, setStoredPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
+  const [homeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
+  const [, setStoredPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
 
   useEffect(() => {
-    if (!firebaseConfig) {
-        setError("Firebase configuration is missing. Please set up environment variables.");
+    if (!firebaseConfig || !homeGameCode) {
+        setError("Firebase configuration or Home Game code is missing.");
         setConnectionStatus('error');
         setLoading(false);
         return;
@@ -64,35 +64,25 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
             const firestore = getFirestore(app);
             setDb(firestore);
 
-            const playerNamesDocRef = doc(firestore, 'config', 'playerNames');
-            const playerNamesSnap = await getDoc(playerNamesDocRef);
-            let currentPlayers: string[] = [];
-
-            if (playerNamesSnap.exists()) {
-                currentPlayers = playerNamesSnap.data().names || [];
-            } else if (storedPlayerNames && storedHomeGameCode) {
-                // If config exists in local storage but not in DB, this is the first run after creation.
-                // Write the initial config to the DB.
-                const batch = writeBatch(firestore);
-                const accessDocRef = doc(firestore, 'config', 'access');
-                
-                batch.set(playerNamesDocRef, { names: storedPlayerNames });
-                batch.set(accessDocRef, { code: storedHomeGameCode });
-                
-                await batch.commit();
-                currentPlayers = storedPlayerNames;
+            const gameConfigDocRef = doc(firestore, 'homeGames', homeGameCode);
+            const gameConfigSnap = await getDoc(gameConfigDocRef);
+            
+            if (!gameConfigSnap.exists()) {
+                setError("This Home Game does not exist. Please check the code or create a new game.");
+                setConnectionStatus('error');
+                setLoading(false);
+                return;
             }
-            
-            setPlayerNames(currentPlayers);
-            // Sync local storage with what's in DB (or what we just wrote)
-            setStoredPlayerNames(currentPlayers);
-            
 
-            const sessionsCollection = collection(firestore, 'sessions');
+            const currentPlayers: string[] = gameConfigSnap.data().playerNames || [];
+            setPlayerNames(currentPlayers);
+            setStoredPlayerNames(currentPlayers);
+
+            const sessionsCollection = collection(firestore, 'homeGames', homeGameCode, 'sessions');
             unsubscribe = onSnapshot(sessionsCollection, (snapshot) => {
                 const sessionsData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
+                    id: doc.id,
+                    ...doc.data(),
                 } as Session)).sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
                 setSessions(sessionsData);
                 setConnectionStatus('connected');
@@ -122,15 +112,15 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     initialize();
 
     return () => unsubscribe();
-  }, [firebaseConfig, storedPlayerNames, setStoredPlayerNames, storedHomeGameCode]);
+  }, [firebaseConfig, homeGameCode, setStoredPlayerNames]);
 
   const updatePlayerNames = async (newPlayerNames: string[]) => {
-    if(!db) {
-        throw new Error("Not connected to Firebase.");
+    if(!db || !homeGameCode) {
+        throw new Error("Not connected to Firebase or no Home Game code specified.");
     }
 
-    const playerNamesDocRef = doc(db, 'config', 'playerNames');
-    await updateDoc(playerNamesDocRef, { names: newPlayerNames });
+    const gameConfigDocRef = doc(db, 'homeGames', homeGameCode);
+    await updateDoc(gameConfigDocRef, { playerNames: newPlayerNames });
 
     setPlayerNames(newPlayerNames);
     setStoredPlayerNames(newPlayerNames);

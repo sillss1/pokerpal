@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "../ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 const addPlayerSchema = z.object({
   newPlayerName: z.string().min(1, "Player name cannot be empty."),
@@ -23,6 +24,7 @@ type AddPlayerFormValues = z.infer<typeof addPlayerSchema>;
 
 export function SetupTab() {
   const { firebaseConfig, playerNames, connectionStatus, error, updatePlayerNames } = useFirebase();
+  const { homeGameCode } = useAuth();
   const { logout } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -153,13 +155,13 @@ export function SetupTab() {
             <CardDescription>This is the configuration for the connected group.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+             <div>
+                <h4 className="font-semibold text-sm">Home Game Code</h4>
+                <p className="text-muted-foreground text-sm">{homeGameCode || "N/A"}</p>
+            </div>
             <div>
                 <h4 className="font-semibold text-sm">Project ID</h4>
                 <p className="text-muted-foreground text-sm">{firebaseConfig?.projectId || "N/A"}</p>
-            </div>
-             <div>
-                <h4 className="font-semibold text-sm">App ID</h4>
-                <p className="text-muted-foreground text-sm">{firebaseConfig?.appId || "N/A"}</p>
             </div>
         </CardContent>
       </Card>
