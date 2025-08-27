@@ -183,12 +183,10 @@ function PlayerManagement() {
 function SessionCorrector({ form }: { form: any }) {
     const playerNames = useFirebase().playerNames;
     const watchedValues = form.watch(playerNames);
-    const buyInAmount = form.watch('buyInAmount') || 0;
 
-    const { totalWins, totalLosses, totalBuyIns } = useMemo(() => {
+    const { totalWins, totalLosses } = useMemo(() => {
         let wins = 0;
         let losses = 0;
-        let buyIns = 0;
 
         playerNames.forEach(name => {
             const player = watchedValues[name];
@@ -196,33 +194,29 @@ function SessionCorrector({ form }: { form: any }) {
                 const result = parseFloat(player.result) || 0;
                 if(result > 0) wins += result;
                 if(result < 0) losses += result;
-                buyIns += parseInt(player.buyIns, 10) || 0;
             }
         });
 
-        return { totalWins: wins, totalLosses: losses, totalBuyIns: buyIns };
+        return { totalWins: wins, totalLosses: losses };
     }, [watchedValues, playerNames]);
+    
+    const balance = totalWins + totalLosses;
+    const isBalanced = Math.abs(balance) < 0.01;
 
-    const totalPot = totalBuyIns * buyInAmount;
-    const isBalanced = Math.abs(totalWins + totalLosses) < 0.01;
-
-    if (totalBuyIns === 0) {
-        return null; // Don't show if no buy-ins are entered
+    // Only show if at least one result is not zero
+    if (Math.abs(balance) === 0 && totalWins === 0 && totalLosses === 0) {
+        return null;
     }
 
     return (
-        <Card className="mt-4">
+        <Card className="mt-4 bg-muted/50">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Summary & Balance</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Balance</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex flex-wrap gap-4">
-                     <div className="text-center p-3 rounded-lg bg-primary/10">
-                        <p className="text-sm text-primary font-semibold">Total Pot</p>
-                        <p className="text-2xl font-bold text-primary">{totalPot.toFixed(2)}€</p>
-                    </div>
                     <div className="text-center p-3 rounded-lg bg-gain/10">
-                        <p className="text-sm text-gain font-semibold">Total Wins</p>
+                        <p className="text-sm text-gain font-semibold">Total Gains</p>
                         <p className="text-2xl font-bold text-gain">{totalWins.toFixed(2)}€</p>
                     </div>
                      <div className="text-center p-3 rounded-lg bg-loss/10">
@@ -231,11 +225,11 @@ function SessionCorrector({ form }: { form: any }) {
                     </div>
                 </div>
                 <div className={cn(
-                    "flex items-center gap-2 font-bold p-2 rounded-md w-full md:w-auto justify-center",
+                    "flex items-center gap-2 font-bold p-3 rounded-md w-full md:w-auto justify-center text-lg",
                     isBalanced ? "text-gain bg-gain/10" : "text-destructive bg-destructive/10"
                 )}>
                     {isBalanced ? <CheckCircle /> : <AlertCircle />}
-                    <span>{isBalanced ? "Session is Balanced" : "Session is Unbalanced"}</span>
+                    <span>{isBalanced ? "Balanced" : `Unbalanced by ${balance.toFixed(2)}€`}</span>
                 </div>
             </CardContent>
         </Card>
@@ -266,7 +260,7 @@ export function SessionsTab() {
         return Math.abs(total) < 0.01; // Allow for floating point inaccuracies
     }, {
         message: "The sum of all player results must be 0.",
-        path: [playerNames.length > 0 ? playerNames[0] : ''] // Show error on the first player field
+        path: [''] // General form error
     });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -291,7 +285,8 @@ export function SessionsTab() {
         buyInAmount: 10,
         ...initialPlayerValues,
     });
-  }, [playerNames, form.reset]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playerNames]);
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
@@ -415,12 +410,14 @@ export function SessionsTab() {
                 ))}
               </div>
             </div>
-            
+             {form.formState.errors.root && (
+                <p className="text-sm font-medium text-destructive">{form.formState.errors.root.message}</p>
+            )}
+            <SessionCorrector form={form} />
             <Button type="submit" disabled={isAdding}>
               {isAdding ? "Adding..." : "Add Session"}
             </Button>
           </form>
-          <SessionCorrector form={form} />
         </Form>
         ) : (
           <p className="text-muted-foreground">Please add players in the Player Management section below to start logging sessions.</p>
@@ -452,7 +449,7 @@ export function SessionsTab() {
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                            {playerNames.map(p => <TableCell key={p}><Skeleton className="h-4 w-16 ml-auto" /></TableCell>)}
+                            {playerNames.map(p => <TableCell key={p}><Skeleton key={p} className="h-4 w-16 ml-auto" /></TableCell>)}
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-8 mx-auto" /></TableCell>
                         </TableRow>
@@ -516,3 +513,5 @@ export function SessionsTab() {
     </div>
   );
 }
+
+    
