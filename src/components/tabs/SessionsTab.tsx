@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from "react";
@@ -37,7 +36,7 @@ import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus } from 
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useAuth } from "@/contexts/AuthProvider";
 import { Session } from "@/lib/types";
 import {
   Table,
@@ -173,14 +172,14 @@ function PlayerManagement() {
 
 export function SessionsTab() {
   const { db, playerNames, sessions, loading } = useFirebase();
+  const { homeGameCode } = useAuth();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
-  const [homeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
 
   const formSchema = z.object({
       date: z.date(),
       location: z.string().min(1, "Location is required"),
-      addedBy: z.string().min(1, "Please select who is adding this session"),
+      addedBy: z.string({required_error: "Please select who added this session."}).min(1, "Please select who added this session"),
       ...playerNames.reduce((acc, name) => {
         acc[name] = z.coerce.number().default(0);
         return acc;
@@ -419,7 +418,7 @@ export function SessionsTab() {
                   <TableCell>{format(new Date(session.date), "dd MMM yyyy")}</TableCell>
                   <TableCell>{session.location}</TableCell>
                   {playerNames.map((name) => (
-                    <TableCell key={name} className={`text-right font-medium ${session.players[name] >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <TableCell key={name} className="text-right font-medium" style={{ color: session.players[name] >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
                       {session.players[name]?.toFixed(2) ?? 'N/A'}€
                     </TableCell>
                   ))}

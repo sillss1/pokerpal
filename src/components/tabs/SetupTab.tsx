@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useFirebase } from "@/contexts/FirebaseProvider";
@@ -6,7 +5,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, AlertCircle } from "lucide-react";
+import { LogOut, AlertCircle, CheckCircle, XCircle, Power, PowerOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
@@ -18,13 +17,13 @@ export function SetupTab() {
   const getStatusBadge = () => {
     switch(connectionStatus) {
         case 'connected':
-            return <Badge variant="default" className="bg-green-500">Connected</Badge>;
+            return <Badge className="bg-green-500 hover:bg-green-500/90 gap-2"><CheckCircle />Connected</Badge>;
         case 'disconnected':
-            return <Badge variant="secondary">Disconnected</Badge>;
+            return <Badge variant="secondary" className="gap-2"><PowerOff />Disconnected</Badge>;
         case 'connecting':
-            return <Badge variant="outline">Connecting...</Badge>;
+            return <Badge variant="outline" className="gap-2 animate-pulse"><Power />Connecting...</Badge>;
         case 'error':
-            return <Badge variant="destructive">Error</Badge>;
+            return <Badge variant="destructive" className="gap-2"><XCircle />Error</Badge>;
     }
   }
 
@@ -51,11 +50,11 @@ export function SetupTab() {
             )}
              <div>
                 <h4 className="font-semibold text-sm">Home Game Code</h4>
-                <p className="text-muted-foreground text-sm">{homeGameCode || "N/A"}</p>
+                <p className="text-muted-foreground text-sm font-mono tracking-widest">{homeGameCode || "N/A"}</p>
             </div>
             <div>
                 <h4 className="font-semibold text-sm">Firebase Project ID</h4>
-                <p className="text-muted-foreground text-sm">{firebaseConfig?.projectId || "N/A"}</p>
+                <p className="text-muted-foreground text-sm font-mono">{firebaseConfig?.projectId || "N/A"}</p>
             </div>
         </CardContent>
       </Card>

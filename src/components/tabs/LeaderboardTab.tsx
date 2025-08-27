@@ -10,7 +10,7 @@ import { Skeleton } from "../ui/skeleton";
 const getRankingColor = (rank: number) => {
   switch (rank) {
     case 0:
-      return "border-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20";
+      return "border-primary bg-primary/10 hover:bg-primary/20";
     case 1:
       return "border-slate-400 bg-slate-400/10 hover:bg-slate-400/20";
     case 2:
@@ -101,21 +101,21 @@ export function LeaderboardTab() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xl font-bold flex items-center gap-2">
               {index < 3 && <Crown className={`w-6 h-6 ${
-                index === 0 ? "text-yellow-400" :
+                index === 0 ? "text-primary" :
                 index === 1 ? "text-slate-400" :
                 "text-amber-600"
               }`} />}
               {player.name}
             </CardTitle>
-            <div className={`text-2xl font-bold ${player.totalWinnings >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <div className={`text-2xl font-bold`} style={{ color: player.totalWinnings >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
                 {player.totalWinnings.toFixed(2)}€
             </div>
           </CardHeader>
           <CardContent className="space-y-3 pt-2">
             <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
             <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
-            <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-green-500" />
-            <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} className="text-red-500" />
+            <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} style={{ color: 'hsl(var(--color-gain))' }} />
+            <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} style={{ color: 'hsl(var(--color-loss))' }} />
             <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
           </CardContent>
         </Card>
