@@ -13,17 +13,19 @@ Welcome to PokerPal! This is a complete web application for tracking poker sessi
 
 ---
 
-## 🛠️ Initial Setup & Deployment
+## 🛠️ Setup & Deployment
 
-To use PokerPal, you need to connect it to your own Firebase project and deploy it. This setup ensures that your data is private and secure. The recommended way to deploy is with Vercel.
+To use PokerPal, you need to connect it to your own Firebase project and deploy it. The recommended way to deploy is with Vercel, which offers a generous free tier that does not require a credit card.
 
-### 1. Create a Firebase Project
+### Step 1: Create a Firebase Project
+
+First, you need a Firebase project to store your data.
 
 1.  Go to the [Firebase Console](https://console.firebase.google.com/).
 2.  Click **"Add project"** and give it a name (e.g., "PokerPal Tracker").
-3.  Follow the on-screen steps to create the project. Google Analytics is optional.
+3.  Follow the on-screen steps. Google Analytics is optional.
 
-### 2. Create a Firestore Database
+### Step 2: Create a Firestore Database
 
 1.  In your new Firebase project, go to the **Build > Firestore Database** section.
 2.  Click **"Create database"**.
@@ -31,9 +33,9 @@ To use PokerPal, you need to connect it to your own Firebase project and deploy 
 4.  Choose a location for your database (e.g., `us-central`).
 5.  Click **"Enable"**.
 
-### 3. Set Firestore Security Rules
+### Step 3: Set Firestore Security Rules
 
-For a small, trusted group of friends, you can use open rules that allow anyone authenticated with your project to read and write data.
+For a small, trusted group of friends, you can use open rules that allow anyone to read and write data.
 
 1.  In the Firestore section, go to the **"Rules"** tab.
 2.  Replace the existing rules with the following:
@@ -50,7 +52,7 @@ For a small, trusted group of friends, you can use open rules that allow anyone 
     ```
 3.  Click **"Publish"**.
 
-### 4. Get Your Firebase App Credentials
+### Step 4: Get Your Firebase App Credentials
 
 1.  Go to **Project Settings** (click the ⚙️ icon next to "Project Overview").
 2.  In the **"General"** tab, scroll down to **"Your apps"**.
@@ -58,25 +60,27 @@ For a small, trusted group of friends, you can use open rules that allow anyone 
 4.  Give it a nickname (e.g., "PokerPal Web") and click **"Register app"**.
 5.  Firebase will show you your configuration credentials (an object with `apiKey`, `authDomain`, etc.). **Copy these values.** You will need them for the deployment step.
 
-### 5. Deploy with Vercel (Recommended)
+### Step 5: Deploy with Vercel (Recommended & Free)
 
-Vercel provides a seamless deployment experience for Next.js apps.
+Vercel provides a seamless deployment experience for Next.js apps and its free plan is perfect for this project.
 
-1.  **Fork this Repository**: Create a copy of this project on your own GitHub account.
-2.  **Sign up on Vercel**: Go to [vercel.com](https://vercel.com) and sign up with your GitHub account.
-3.  **Import Project**: From your Vercel dashboard, click **"Add New... > Project"**.
-4.  **Select Repository**: Find and select the repository you forked.
-5.  **Configure Environment Variables**:
+1.  **Create a GitHub Account**: If you don't have one, create a free account at [github.com](https://github.com).
+2.  **Create a New Repository**: Create a new, empty repository on GitHub to hold your project's code.
+3.  **Upload Your Code**: Upload the PokerPal application files to this new GitHub repository.
+4.  **Sign up on Vercel**: Go to [vercel.com](https://vercel.com) and sign up with your GitHub account. It's free and no credit card is required.
+5.  **Import Project**: From your Vercel dashboard, click **"Add New... > Project"**.
+6.  **Select Your Repository**: Find and select the GitHub repository you just created.
+7.  **Configure Environment Variables**:
     *   Expand the **"Environment Variables"** section.
-    *   Add the Firebase credentials you copied earlier. Each key-value pair from your Firebase config needs to be a separate environment variable. The names must be:
+    *   Add the Firebase credentials you copied in Step 4. Each key-value pair from your Firebase config needs to be a separate environment variable. The names must be:
         -   `NEXT_PUBLIC_FIREBASE_API_KEY`
         -   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
         -   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
         -   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
         -   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
         -   `NEXT_PUBLIC_FIREBASE_APP_ID`
-6.  **Deploy**: Click the **"Deploy"** button.
-7.  **Done!**: Vercel will build and deploy your site, giving you a public URL (e.g., `https://poker-pal-xxx.vercel.app`).
+8.  **Deploy**: Click the **"Deploy"** button.
+9.  **Done!**: Vercel will build and deploy your site, giving you a public URL (e.g., `https://poker-pal-xxx.vercel.app`).
 
 ---
 
