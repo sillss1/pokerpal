@@ -37,6 +37,7 @@ import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus } from 
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Session } from "@/lib/types";
 import {
   Table,
@@ -465,4 +466,3 @@ export function SessionsTab() {
     </div>
   );
 }
-
