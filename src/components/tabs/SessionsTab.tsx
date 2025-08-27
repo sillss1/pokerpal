@@ -462,7 +462,7 @@ export function SessionsTab() {
                 <TableRow key={session.id}>
                   <TableCell>{format(new Date(session.date), "dd MMM yyyy")}</TableCell>
                   <TableCell>{session.location}</TableCell>
-                  <TableCell className="text-right">{session.buyInAmount.toFixed(2)}€</TableCell>
+                  <TableCell className="text-right">{(session.buyInAmount || 10).toFixed(2)}€</TableCell>
                   <TableCell className="text-right font-semibold">{(session.totalPot || 0).toFixed(2)}€</TableCell>
                   {playerNames.map((name) => (
                     <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name]?.result ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
