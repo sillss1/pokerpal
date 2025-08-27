@@ -16,7 +16,7 @@ export function PokerPal() {
       <header className="flex items-center gap-4 mb-6">
         <PokerChipIcon className="w-12 h-12 text-primary" />
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-primary">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             PokerPal
           </h1>
           <p className="text-muted-foreground">Your friendly poker session tracker</p>
@@ -24,7 +24,7 @@ export function PokerPal() {
       </header>
 
       <Tabs defaultValue="sessions" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-4 bg-background/50 backdrop-blur-sm">
           <TabsTrigger value="sessions">
             <History className="w-4 h-4 mr-2" />
             Sessions

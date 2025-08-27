@@ -204,7 +204,7 @@ export function AccessPage() {
                 <div className="flex justify-center items-center gap-4 mb-2">
                     <PokerChipIcon className="w-12 h-12 text-primary" />
                     <div>
-                        <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight text-primary">PokerPal</CardTitle>
+                        <CardTitle className="text-3xl md:text-4xl font-bold tracking-tight">PokerPal</CardTitle>
                     </div>
                 </div>
                 <CardDescription>Your friendly poker session tracker</CardDescription>
