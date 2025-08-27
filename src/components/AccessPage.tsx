@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
 import { FirebaseConfig } from "@/lib/types";
-import { Trash2, PlusCircle, Users, LogIn } from "lucide-react";
+import { Trash2, PlusCircle, Users, LogIn, TestTubeDiagonal } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Schemas
@@ -44,36 +44,88 @@ type JoinGameFormValues = z.infer<typeof joinGameSchema>;
 type CreateGameFormValues = z.infer<typeof createGameSchema>;
 
 
+async function testFirebaseConnection(config: FirebaseConfig, toast: (options: any) => void): Promise<boolean> {
+    let tempApp: FirebaseApp | undefined;
+    try {
+        tempApp = initializeApp(config, `validation-${Date.now()}`);
+        getFirestore(tempApp); // Attempt to get Firestore instance
+        toast({ title: "Success!", description: "Firebase connection successful." });
+        return true;
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Connection Failed", description: "Firebase connection failed. Check your credentials." });
+        return false;
+    } finally {
+        if (tempApp) await deleteApp(tempApp);
+    }
+}
+
+
 // Firebase Fields Component
-const FirebaseFields = () => (
-    <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="item-1">
-            <AccordionTrigger>Firebase Credentials</AccordionTrigger>
-            <AccordionContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                    <FormField control={useFormContext().control} name="projectId" render={({ field }) => (
-                        <FormItem><FormLabel>Project ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={useFormContext().control} name="appId" render={({ field }) => (
-                        <FormItem><FormLabel>App ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={useFormContext().control} name="apiKey" render={({ field }) => (
-                        <FormItem><FormLabel>API Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={useFormContext().control} name="authDomain" render={({ field }) => (
-                        <FormItem><FormLabel>Auth Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={useFormContext().control} name="storageBucket" render={({ field }) => (
-                        <FormItem><FormLabel>Storage Bucket</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={useFormContext().control} name="messagingSenderId" render={({ field }) => (
-                        <FormItem><FormLabel>Messaging Sender ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
-                </div>
-            </AccordionContent>
-        </AccordionItem>
-    </Accordion>
-);
+const FirebaseFields = () => {
+    const { toast } = useToast();
+    const [isTesting, setIsTesting] = useState(false);
+    const form = useFormContext();
+
+    const handleTestConnection = async () => {
+        setIsTesting(true);
+        const values = form.getValues();
+        const config: FirebaseConfig = {
+            apiKey: values.apiKey,
+            authDomain: values.authDomain,
+            projectId: values.projectId,
+            storageBucket: values.storageBucket,
+            messagingSenderId: values.messagingSenderId,
+            appId: values.appId,
+        };
+
+        // Validate config before testing
+        const result = firebaseConfigSchema.safeParse(config);
+        if (!result.success) {
+            toast({ variant: "destructive", title: "Missing Fields", description: "Please fill in all Firebase credential fields." });
+            setIsTesting(false);
+            return;
+        }
+
+        await testFirebaseConnection(result.data, toast);
+        setIsTesting(false);
+    };
+
+    return (
+        <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1">
+                <AccordionTrigger>Firebase Credentials</AccordionTrigger>
+                <AccordionContent>
+                    <div className="space-y-4 pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField control={form.control} name="projectId" render={({ field }) => (
+                                <FormItem><FormLabel>Project ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="appId" render={({ field }) => (
+                                <FormItem><FormLabel>App ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="apiKey" render={({ field }) => (
+                                <FormItem><FormLabel>API Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="authDomain" render={({ field }) => (
+                                <FormItem><FormLabel>Auth Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="storageBucket" render={({ field }) => (
+                                <FormItem><FormLabel>Storage Bucket</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="messagingSenderId" render={({ field }) => (
+                                <FormItem><FormLabel>Messaging Sender ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                        </div>
+                        <Button type="button" variant="outline" onClick={handleTestConnection} disabled={isTesting}>
+                           <TestTubeDiagonal className="mr-2" />
+                            {isTesting ? "Testing..." : "Test Connection"}
+                        </Button>
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+    );
+};
 
 // Join Game Form Component
 function JoinGameForm() {
