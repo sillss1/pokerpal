@@ -25,14 +25,19 @@ const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined
 
 // Helper function to get the initialized Firebase app
 function getFirebaseApp(config: FirebaseConfig): FirebaseApp {
-    if (getApps().length) {
-        return getApp();
+    if (getApps().length > 0) {
+        // Find an existing app with the same config
+        const existingApp = getApps().find(app => app.options.projectId === config.projectId);
+        if (existingApp) {
+            return existingApp;
+        }
     }
-    return initializeApp(config);
+    // A slight delay in initialization can prevent race conditions on hot reloads
+    return initializeApp(config, `firebase-app-${Date.now()}`);
 }
 
 
-export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
+export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNode, homeGameCode: string }) => {
   const [db, setDb] = useState<Firestore | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [playerNames, setPlayerNames] = useState<string[]>([]);
@@ -41,7 +46,6 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   
   const [firebaseConfig] = useState<FirebaseConfig | null>(getFirebaseConfig());
-  const [homeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
   const [, setStoredPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
 
   useEffect(() => {
@@ -53,8 +57,9 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     }
     
     if (!homeGameCode) {
-        // This is not an error state, it just means the user is not logged in.
-        setConnectionStatus('disconnected');
+        // This state should ideally not be reached if the provider is rendered conditionally
+        setError("Home Game Code is missing.");
+        setConnectionStatus('error');
         setLoading(false);
         return;
     }
@@ -90,7 +95,10 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
                 const sessionsData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
-                } as Session)).sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+                } as Session)).sort((a, b) => {
+                    if (!a.timestamp || !b.timestamp) return 0;
+                    return b.timestamp.toMillis() - a.timestamp.toMillis()
+                });
                 setSessions(sessionsData);
                 setConnectionStatus('connected');
                 setLoading(false);
@@ -118,7 +126,9 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     
     initialize();
 
-    return () => unsubscribe();
+    return () => {
+        if(unsubscribe) unsubscribe();
+    }
   }, [firebaseConfig, homeGameCode, setStoredPlayerNames]);
 
   const updatePlayerNames = async (newPlayerNames: string[]) => {

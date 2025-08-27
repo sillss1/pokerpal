@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, homeGameCode } = useAuth();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -24,9 +24,9 @@ function AppContent() {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && homeGameCode) {
     return (
-      <FirebaseProvider>
+      <FirebaseProvider homeGameCode={homeGameCode}>
         <PokerPal />
       </FirebaseProvider>
     );
