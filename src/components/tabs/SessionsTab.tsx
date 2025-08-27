@@ -284,7 +284,7 @@ export function SessionsTab() {
   useEffect(() => {
     form.reset(getInitialFormValues());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerNames, getInitialFormValues]);
+  }, [playerNames]);
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
@@ -368,7 +368,7 @@ export function SessionsTab() {
                   </FormItem>)}/>
               <FormField control={form.control} name="location" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Location</FormLabel><FormControl><Input placeholder="e.g., John's House" {...field} /></FormControl><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="addedBy" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><User className="w-4 h-4" />Added by</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger></FormControl><SelectContent>{playerNames.map((name) => (<SelectItem key={name} value={name}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)}/>
-              <FormField control={form.control} name="buyInAmount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4" />Buy-in Amount (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="buyInAmount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4" />Buy-in Amount (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)}/>
             </div>
 
             <div>
@@ -495,7 +495,7 @@ export function SessionsTab() {
               ))}
               {!loading && sessions.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={playerNames.length + 6} className="h-24 text-center">
+                    <TableCell colSpan={playerNames.length + 7} className="h-24 text-center">
                         No sessions found. Add one to get started!
                     </TableCell>
                 </TableRow>

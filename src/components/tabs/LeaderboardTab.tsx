@@ -55,11 +55,11 @@ export function LeaderboardTab() {
 
     sessions.forEach((session: Session) => {
       Object.entries(session.players).forEach(([playerName, data]) => {
-        if (stats[playerName]) {
+        if (stats[playerName] && data) { // Check if data exists
           const result = data.result;
           stats[playerName].totalWinnings += result;
           stats[playerName].totalSessions += 1;
-          stats[playerName].totalBuyIns += data.buyIns || 0; // Fallback for old sessions
+          stats[playerName].totalBuyIns += data.buyIns || 0;
 
           if (result > 0) {
             stats[playerName].sessionsWon += 1;
