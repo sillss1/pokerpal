@@ -232,6 +232,57 @@ function SessionCorrector({ form }: { form: any }) {
     );
 }
 
+function SessionTableRow({ session, playerNames, onDelete }: { session: Session; playerNames: string[]; onDelete: (sessionId: string) => void; }) {
+    const [formattedDate, setFormattedDate] = useState("");
+    
+    useEffect(() => {
+        if (session.date) {
+            setFormattedDate(format(new Date(session.date), "dd MMM yyyy"));
+        }
+    }, [session.date]);
+
+    return (
+        <TableRow>
+            <TableCell>{formattedDate}</TableCell>
+            <TableCell>{session.location}</TableCell>
+            <TableCell className="text-right">{(session.buyInAmount || 10).toFixed(2)}€</TableCell>
+            <TableCell className="text-right font-semibold">{(session.totalPot || 0).toFixed(2)}€</TableCell>
+            {playerNames.map((name) => (
+                <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name]?.result ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
+                    {(session.players[name]?.result ?? 0).toFixed(2)}€
+                    <span className="text-xs text-muted-foreground ml-1">({session.players[name]?.buyIns || 0} BI)</span>
+                </TableCell>
+            ))}
+            <TableCell>{session.addedBy}</TableCell>
+            <TableCell className="text-center">
+                <div className="flex gap-2 justify-center">
+                    <SessionSettlementDialog session={session} />
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the session from
+                                    {formattedDate} at {session.location}.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(session.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </TableCell>
+        </TableRow>
+    );
+}
+
 export function SessionsTab() {
   const { playerNames, sessions, loading, addSession, deleteSession } = useFirebase();
   const { toast } = useToast();
@@ -259,32 +310,31 @@ export function SessionsTab() {
         path: [''] // General form error
     });
 
-    const getInitialFormValues = useMemo(() => {
-      return () => {
-        const initialPlayerValues = playerNames.reduce((acc, name) => {
-            acc[name] = { result: 0, buyIns: 1 };
-            return acc;
-        }, {} as any);
-    
-        return {
-            date: new Date(),
-            location: "",
-            addedBy: "",
-            buyInAmount: 10,
-            ...initialPlayerValues,
-        };
-      }
-    }, [playerNames]);
+  const getInitialFormValues = useMemo(() => {
+    return () => {
+      const initialPlayerValues = playerNames.reduce((acc, name) => {
+          acc[name] = { result: 0, buyIns: 1 };
+          return acc;
+      }, {} as any);
+  
+      return {
+          date: new Date(),
+          location: "",
+          addedBy: "",
+          buyInAmount: 10,
+          ...initialPlayerValues,
+      };
+    }
+  }, [playerNames]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: getInitialFormValues(),
   });
-
+  
   useEffect(() => {
-    form.reset(getInitialFormValues());
+      form.reset(getInitialFormValues());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerNames]);
+  }, [playerNames, form]);
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
@@ -357,7 +407,8 @@ export function SessionsTab() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <FormField control={form.control} name="date" render={({ field }) => (
-                  <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl>
+                  <FormItem className="flex flex-col"><FormLabel>Date</FormLabel>
+                  <Popover><PopoverTrigger asChild><FormControl>
                           <Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>
                             {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
@@ -454,44 +505,7 @@ export function SessionsTab() {
                     ))
                 )}
               {!loading && sessions.map((session: Session) => (
-                <TableRow key={session.id}>
-                  <TableCell>{format(new Date(session.date), "dd MMM yyyy")}</TableCell>
-                  <TableCell>{session.location}</TableCell>
-                  <TableCell className="text-right">{(session.buyInAmount || 10).toFixed(2)}€</TableCell>
-                  <TableCell className="text-right font-semibold">{(session.totalPot || 0).toFixed(2)}€</TableCell>
-                  {playerNames.map((name) => (
-                    <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name]?.result ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
-                      {(session.players[name]?.result ?? 0).toFixed(2)}€ 
-                      <span className="text-xs text-muted-foreground ml-1">({session.players[name]?.buyIns || 0} BI)</span>
-                    </TableCell>
-                  ))}
-                  <TableCell>{session.addedBy}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex gap-2 justify-center">
-                       <SessionSettlementDialog session={session}/>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the session from
-                                    {format(new Date(session.date), "PPP")} at {session.location}.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteSession(session.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <SessionTableRow key={session.id} session={session} playerNames={playerNames} onDelete={handleDeleteSession} />
               ))}
               {!loading && sessions.length === 0 && (
                 <TableRow>
@@ -511,5 +525,3 @@ export function SessionsTab() {
     </div>
   );
 }
-
-    

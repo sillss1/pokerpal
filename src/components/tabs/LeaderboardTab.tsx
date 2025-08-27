@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PlayerStats, Session } from "@/lib/types";
@@ -30,9 +30,40 @@ const StatCard = ({ icon: Icon, label, value, className }: { icon: React.Element
     </div>
 );
 
+function BiggestSessionRow({ session, index }: { session: Session; index: number }) {
+    const [formattedDate, setFormattedDate] = useState("");
+
+    useEffect(() => {
+        if (session.date) {
+            setFormattedDate(format(new Date(session.date), "PPP"));
+        }
+    }, [session.date]);
+
+    return (
+        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-3">
+                <Trophy className={`w-6 h-6 ${index === 0 ? "text-primary" : "text-muted-foreground"}`} />
+                <div>
+                    <p className="font-semibold">{session.location}</p>
+                    <p className="text-sm text-muted-foreground">{formattedDate}</p>
+                </div>
+            </div>
+            <p className="font-bold text-xl text-primary">{(session.totalPot || 0).toFixed(2)}€</p>
+        </div>
+    );
+}
 
 export function LeaderboardTab() {
   const { sessions, playerNames, loading } = useFirebase();
+  const [biggestSessions, setBiggestSessions] = useState<Session[]>([]);
+
+  useEffect(() => {
+      const sortedSessions = [...sessions]
+        .sort((a, b) => (b.totalPot || 0) - (a.totalPot || 0))
+        .slice(0, 5);
+      setBiggestSessions(sortedSessions);
+  }, [sessions]);
+
 
   const playerStats = useMemo<PlayerStats[]>(() => {
     if (!sessions || !playerNames) return [];
@@ -85,12 +116,6 @@ export function LeaderboardTab() {
 
     return Object.values(stats).sort((a, b) => b.totalWinnings - a.totalWinnings);
   }, [sessions, playerNames]);
-
-  const biggestSessions = useMemo(() => {
-    return [...sessions] // Create a shallow copy to avoid mutating the original array
-        .sort((a, b) => (b.totalPot || 0) - (a.totalPot || 0))
-        .slice(0, 5); // Top 5 biggest sessions
-  }, [sessions]);
 
   if (loading) {
     return (
@@ -158,16 +183,7 @@ export function LeaderboardTab() {
                     {biggestSessions.length > 0 ? (
                          <div className="space-y-4">
                             {biggestSessions.map((session, index) => (
-                                <div key={session.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <Trophy className={`w-6 h-6 ${index === 0 ? "text-primary" : "text-muted-foreground"}`} />
-                                        <div>
-                                            <p className="font-semibold">{session.location}</p>
-                                            <p className="text-sm text-muted-foreground">{format(new Date(session.date), "PPP")}</p>
-                                        </div>
-                                    </div>
-                                    <p className="font-bold text-xl text-primary">{(session.totalPot || 0).toFixed(2)}€</p>
-                                </div>
+                                <BiggestSessionRow key={session.id} session={session} index={index} />
                             ))}
                         </div>
                     ) : (
@@ -179,5 +195,3 @@ export function LeaderboardTab() {
     </div>
   );
 }
-
-    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -62,7 +62,15 @@ function AddDebtForm() {
     const { playerNames, addDebt, sessions } = useFirebase();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
+    const [unsettledSessions, setUnsettledSessions] = useState<Session[]>([]);
     
+    useEffect(() => {
+        const sortedSessions = sessions
+            .filter(s => !s.settled)
+            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setUnsettledSessions(sortedSessions);
+    }, [sessions]);
+
     const form = useForm<AddDebtFormValues>({
         resolver: zodResolver(addDebtSchema),
         defaultValues: {
@@ -73,8 +81,6 @@ function AddDebtForm() {
             sessionId: "",
         },
     });
-    
-    const unsettledSessions = sessions.filter(s => !s.settled).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     async function onSubmit(values: AddDebtFormValues) {
         setIsLoading(true);
@@ -169,7 +175,7 @@ function AddDebtForm() {
                         <FormField control={form.control} name="sessionId" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Associate with a Session (Optional)</FormLabel>
-                                <Select onValueChange={handleSessionChange} value={field.value}>
+                                <Select onValueChange={handleSessionChange} value={field.value || ""}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select an unsettled session" /></SelectTrigger></FormControl>
                                     <SelectContent>
                                         <SelectItem value="none">None</SelectItem>
@@ -204,6 +210,65 @@ function AddDebtForm() {
     );
 }
 
+function DebtRow({ debt, onSettle }: { debt: Debt, onSettle: (debtId: string) => void }) {
+    const [date, setDate] = useState("");
+    const [settledDate, setSettledDate] = useState("");
+
+    useEffect(() => {
+        if (debt.date) {
+            setDate(format(debt.date.toDate(), "dd MMM yyyy"));
+        }
+        if (debt.settledDate) {
+            setSettledDate(format(debt.settledDate.toDate(), "dd MMM yyyy"));
+        }
+    }, [debt]);
+
+    if (debt.settled) {
+        return (
+            <TableRow className="text-muted-foreground">
+                <TableCell>{settledDate || 'N/A'}</TableCell>
+                <TableCell className="flex items-center gap-2">
+                    {debt.fromPlayer} <ArrowRight className="h-4 w-4" /> {debt.toPlayer}
+                </TableCell>
+                <TableCell>{debt.description}</TableCell>
+                <TableCell className="text-right font-medium" style={{ color: 'hsl(var(--color-gain))'}}>{debt.amount.toFixed(2)}€</TableCell>
+                <TableCell className="text-center">
+                    <span className="flex items-center justify-center text-gain gap-1 text-sm"><CheckCircle className="h-4 w-4" /> Paid</span>
+                </TableCell>
+            </TableRow>
+        );
+    }
+
+    return (
+        <TableRow>
+            <TableCell>{date}</TableCell>
+            <TableCell className="flex items-center gap-2 font-medium">
+                {debt.fromPlayer} <ArrowRight className="h-4 w-4 text-muted-foreground" /> {debt.toPlayer}
+            </TableCell>
+            <TableCell className="text-muted-foreground">{debt.description}</TableCell>
+            <TableCell className="text-right font-bold text-destructive">{debt.amount.toFixed(2)}€</TableCell>
+            <TableCell className="text-center">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline">Settle</Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Settle Debt?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Are you sure you want to mark this debt as settled? This indicates that {debt.fromPlayer} has paid {debt.amount.toFixed(2)}€ to {debt.toPlayer}. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onSettle(debt.id)} className="bg-primary hover:bg-primary/90">Confirm Payment</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </TableCell>
+        </TableRow>
+    );
+}
 
 export function DebtsTab() {
   const { debts, loading, settleDebt } = useFirebase();
@@ -258,33 +323,7 @@ export function DebtsTab() {
                                     </TableRow>
                                 ))}
                                 {!loading && activeDebts.map((debt: Debt) => (
-                                    <TableRow key={debt.id}>
-                                        <TableCell>{format(debt.date.toDate(), "dd MMM yyyy")}</TableCell>
-                                        <TableCell className="flex items-center gap-2 font-medium">
-                                            {debt.fromPlayer} <ArrowRight className="h-4 w-4 text-muted-foreground" /> {debt.toPlayer}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">{debt.description}</TableCell>
-                                        <TableCell className="text-right font-bold text-destructive">{debt.amount.toFixed(2)}€</TableCell>
-                                        <TableCell className="text-center">
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button size="sm" variant="outline">Settle</Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Settle Debt?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Are you sure you want to mark this debt as settled? This indicates that {debt.fromPlayer} has paid {debt.amount.toFixed(2)}€ to {debt.toPlayer}. This action cannot be undone.
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleSettleDebt(debt.id)} className="bg-primary hover:bg-primary/90">Confirm Payment</AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        </TableCell>
-                                    </TableRow>
+                                    <DebtRow key={debt.id} debt={debt} onSettle={handleSettleDebt} />
                                 ))}
                                 {!loading && activeDebts.length === 0 && (
                                     <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No active debts. Good job!</TableCell></TableRow>
@@ -319,17 +358,7 @@ export function DebtsTab() {
                                     </TableRow>
                                 ))}
                                 {!loading && settledDebts.map((debt: Debt) => (
-                                    <TableRow key={debt.id} className="text-muted-foreground">
-                                        <TableCell>{debt.settledDate ? format(debt.settledDate.toDate(), "dd MMM yyyy") : 'N/A'}</TableCell>
-                                        <TableCell className="flex items-center gap-2">
-                                            {debt.fromPlayer} <ArrowRight className="h-4 w-4" /> {debt.toPlayer}
-                                        </TableCell>
-                                        <TableCell>{debt.description}</TableCell>
-                                        <TableCell className="text-right font-medium" style={{ color: 'hsl(var(--color-gain))'}}>{debt.amount.toFixed(2)}€</TableCell>
-                                        <TableCell className="text-center">
-                                            <span className="flex items-center justify-center text-gain gap-1 text-sm"><CheckCircle className="h-4 w-4" /> Paid</span>
-                                        </TableCell>
-                                    </TableRow>
+                                    <DebtRow key={debt.id} debt={debt} onSettle={handleSettleDebt} />
                                 ))}
                                 {!loading && settledDebts.length === 0 && (
                                     <TableRow><TableCell colSpan={5} className="h-24 text-center">No settled debts yet.</TableCell></TableRow>

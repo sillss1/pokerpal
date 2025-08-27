@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -26,6 +26,13 @@ export function SessionSettlementDialog({ session }: { session: Session }) {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [formattedDate, setFormattedDate] = useState("");
+
+    useEffect(() => {
+        if (session.date) {
+            setFormattedDate(format(new Date(session.date), "PPP"));
+        }
+    }, [session.date]);
 
     async function handleConfirmSettlement() {
         setIsLoading(true);
@@ -33,7 +40,7 @@ export function SessionSettlementDialog({ session }: { session: Session }) {
             await markSessionSettled(session.id);
             toast({
                 title: "Session Settled",
-                description: `The session on ${format(new Date(session.date), "PPP")} has been marked as settled.`,
+                description: `The session on ${formattedDate} has been marked as settled.`,
             });
             setOpen(false); // Close the dialog on success
         } catch (error) {
@@ -69,7 +76,7 @@ export function SessionSettlementDialog({ session }: { session: Session }) {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Settle Session?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Mark the session on {format(new Date(session.date), "PPP")} as settled? This indicates that all debts have been handled. This action doesn't create any transactions.
+                        Mark the session on {formattedDate} as settled? This indicates that all debts have been handled. This action doesn't create any transactions.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -82,4 +89,3 @@ export function SessionSettlementDialog({ session }: { session: Session }) {
         </AlertDialog>
     );
 }
-

@@ -8,10 +8,6 @@ import { FirebaseProvider } from "@/contexts/FirebaseProvider";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Force the page to be dynamically rendered on the server for every request.
-// This ensures that the environment variables are available when the page is rendered.
-export const dynamic = 'force-dynamic';
-
 function AppContent() {
   const { isAuthenticated, homeGameCode, configLoaded } = useAuth();
 
