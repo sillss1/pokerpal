@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Debt } from "@/lib/types";
+import { Debt, Session } from "@/lib/types";
 import {
   Table,
   TableBody,
@@ -50,6 +50,7 @@ const addDebtSchema = z.object({
     toPlayer: z.string().min(1, "You must select the player who is owed money."),
     amount: z.coerce.number().positive("Amount must be a positive number."),
     description: z.string().min(1, "Description is required"),
+    sessionId: z.string().optional(),
 }).refine(data => data.fromPlayer !== data.toPlayer, {
     message: "A player cannot owe a debt to themselves.",
     path: ["toPlayer"],
@@ -58,7 +59,7 @@ const addDebtSchema = z.object({
 type AddDebtFormValues = z.infer<typeof addDebtSchema>;
 
 function AddDebtForm() {
-    const { playerNames, addDebt } = useFirebase();
+    const { playerNames, addDebt, sessions } = useFirebase();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     
@@ -67,15 +68,23 @@ function AddDebtForm() {
         defaultValues: {
             fromPlayer: "",
             toPlayer: "",
-            amount: undefined, // Use undefined for coerce.number()
+            amount: undefined,
             description: "",
+            sessionId: "",
         },
     });
+    
+    const unsettledSessions = sessions.filter(s => !s.settled).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     async function onSubmit(values: AddDebtFormValues) {
         setIsLoading(true);
         try {
-            await addDebt(values);
+            const selectedSession = sessions.find(s => s.id === values.sessionId);
+            
+            await addDebt({
+                ...values,
+                sessionDate: selectedSession?.date,
+            });
             toast({
                 title: "Debt Recorded",
                 description: `${values.fromPlayer} now owes ${values.toPlayer} ${values.amount.toFixed(2)}€.`,
@@ -85,6 +94,7 @@ function AddDebtForm() {
                 toPlayer: "",
                 amount: undefined,
                 description: "",
+                sessionId: "",
             });
         } catch (error) {
             console.error("Failed to add debt: ", error);
@@ -98,11 +108,22 @@ function AddDebtForm() {
         }
     }
 
+    const handleSessionChange = (sessionId: string) => {
+        form.setValue("sessionId", sessionId);
+        const session = sessions.find(s => s.id === sessionId);
+        if (session) {
+            form.setValue("description", `From session on ${format(new Date(session.date), "PPP")}`);
+        } else {
+            form.setValue("description", "");
+        }
+    };
+
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><PlusCircle />Add New Debt</CardTitle>
-                <CardDescription>Manually record a debt between two players. This is for transactions outside of session settlements.</CardDescription>
+                <CardDescription>Manually record a debt between two players. You can optionally link this debt to a specific game session.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -136,11 +157,30 @@ function AddDebtForm() {
                                 <FormMessage />
                             </FormItem>
                         )} />
+                        
+                        <FormField control={form.control} name="sessionId" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Associate with a Session (Optional)</FormLabel>
+                                <Select onValueChange={handleSessionChange} value={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="Select an unsettled session" /></SelectTrigger></FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="">None</SelectItem>
+                                        {unsettledSessions.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>
+                                                {format(new Date(s.date), "dd MMM yyyy")} - {s.location}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormDescription>Link this debt to a specific game.</FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
                         <FormField control={form.control} name="description" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Description</FormLabel>
                                 <FormControl><Input placeholder="e.g., Dinner, side bet, etc." {...field} /></FormControl>
-                                <FormDescription>A brief note about this debt.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -295,5 +335,3 @@ export function DebtsTab() {
     </div>
   );
 }
-
-    
