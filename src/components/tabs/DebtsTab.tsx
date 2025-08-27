@@ -79,10 +79,16 @@ function AddDebtForm() {
     async function onSubmit(values: AddDebtFormValues) {
         setIsLoading(true);
         try {
-            const selectedSession = sessions.find(s => s.id === values.sessionId);
+            const selectedSession = values.sessionId && values.sessionId !== 'none' 
+                ? sessions.find(s => s.id === values.sessionId) 
+                : undefined;
             
             await addDebt({
-                ...values,
+                fromPlayer: values.fromPlayer,
+                toPlayer: values.toPlayer,
+                amount: values.amount,
+                description: values.description,
+                sessionId: selectedSession?.id,
                 sessionDate: selectedSession?.date,
             });
             toast({
@@ -110,9 +116,11 @@ function AddDebtForm() {
 
     const handleSessionChange = (sessionId: string) => {
         form.setValue("sessionId", sessionId);
-        const session = sessions.find(s => s.id === sessionId);
-        if (session) {
-            form.setValue("description", `From session on ${format(new Date(session.date), "PPP")}`);
+        if (sessionId && sessionId !== 'none') {
+            const session = sessions.find(s => s.id === sessionId);
+            if (session) {
+                form.setValue("description", `From session on ${format(new Date(session.date), "PPP")}`);
+            }
         } else {
             form.setValue("description", "");
         }
@@ -164,7 +172,7 @@ function AddDebtForm() {
                                 <Select onValueChange={handleSessionChange} value={field.value}>
                                     <FormControl><SelectTrigger><SelectValue placeholder="Select an unsettled session" /></SelectTrigger></FormControl>
                                     <SelectContent>
-                                        <SelectItem value="">None</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
                                         {unsettledSessions.map(s => (
                                             <SelectItem key={s.id} value={s.id}>
                                                 {format(new Date(s.date), "dd MMM yyyy")} - {s.location}
@@ -335,5 +343,3 @@ export function DebtsTab() {
     </div>
   );
 }
-
-    
