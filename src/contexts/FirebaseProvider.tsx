@@ -171,8 +171,8 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
       settledDate: null
     };
 
-    if (debt.sessionId) {
-      debtPayload.description = `From session on ${new Date(debt.sessionDate!).toLocaleDateString()}`;
+    if (debt.sessionId && debt.sessionDate) {
+      debtPayload.description = `From session on ${new Date(debt.sessionDate).toLocaleDateString()}`;
     }
 
     await addDoc(debtsCollection, debtPayload);
