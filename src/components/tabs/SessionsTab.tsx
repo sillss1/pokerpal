@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus, AlertCircle, CheckCircle, Scale } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Users, UserPlus, AlertCircle, CheckCircle, Scale, MapPin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -182,13 +182,14 @@ function PlayerManagement() {
 
 function SessionCorrector({ playerNames, watchedValues }: { playerNames: string[], watchedValues: any[]}) {
     const { totalWins, totalLosses } = useMemo(() => {
-        const wins = playerNames
-            .map((_, index) => parseFloat(watchedValues[index] as any) || 0)
+        const results = playerNames
+            .map((_, index) => parseFloat(watchedValues[index] as any) || 0);
+        
+        const wins = results
             .filter(v => v > 0)
             .reduce((sum, v) => sum + v, 0);
         
-        const losses = playerNames
-            .map((_, index) => parseFloat(watchedValues[index] as any) || 0)
+        const losses = results
             .filter(v => v < 0)
             .reduce((sum, v) => sum + v, 0);
             
@@ -393,7 +394,7 @@ export function SessionsTab() {
                     <FormLabel className="flex items-center gap-1"><User className="w-4 h-4" />Added by</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -423,7 +424,7 @@ export function SessionsTab() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
-                {playerNames.map((name) => (
+                {playerNames.map((name, index) => (
                   <FormField
                     key={name}
                     control={form.control}
@@ -432,7 +433,7 @@ export function SessionsTab() {
                       <FormItem>
                         <FormLabel>{name}</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? 0} />
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -485,8 +486,8 @@ export function SessionsTab() {
                   <TableCell>{format(new Date(session.date), "dd MMM yyyy")}</TableCell>
                   <TableCell>{session.location}</TableCell>
                   {playerNames.map((name) => (
-                    <TableCell key={name} className="text-right font-medium" style={{ color: session.players[name] >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
-                      {session.players[name]?.toFixed(2) ?? 'N/A'}€
+                    <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name] ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
+                      {(session.players[name] ?? 0).toFixed(2)}€
                     </TableCell>
                   ))}
                   <TableCell>{session.addedBy}</TableCell>
@@ -535,3 +536,5 @@ export function SessionsTab() {
     </div>
   );
 }
+
+    

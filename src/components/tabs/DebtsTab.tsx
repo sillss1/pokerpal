@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
-import { HandCoins, ArrowRight, CheckCircle, PlusCircle } from "lucide-react";
+import { ArrowRight, CheckCircle, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 
@@ -67,7 +67,7 @@ function AddDebtForm() {
         defaultValues: {
             fromPlayer: "",
             toPlayer: "",
-            amount: 0,
+            amount: undefined, // Use undefined for coerce.number()
             description: "",
         },
     });
@@ -80,7 +80,12 @@ function AddDebtForm() {
                 title: "Debt Recorded",
                 description: `${values.fromPlayer} now owes ${values.toPlayer} ${values.amount.toFixed(2)}€.`,
             });
-            form.reset();
+            form.reset({
+                fromPlayer: "",
+                toPlayer: "",
+                amount: undefined,
+                description: "",
+            });
         } catch (error) {
             console.error("Failed to add debt: ", error);
             toast({
@@ -106,7 +111,7 @@ function AddDebtForm() {
                             <FormField control={form.control} name="fromPlayer" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Who Owes?</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger></FormControl>
                                         <SelectContent>{playerNames.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                                     </Select>
@@ -116,7 +121,7 @@ function AddDebtForm() {
                             <FormField control={form.control} name="toPlayer" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Who is Owed?</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger></FormControl>
                                         <SelectContent>{playerNames.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
                                     </Select>
@@ -127,7 +132,7 @@ function AddDebtForm() {
                          <FormField control={form.control} name="amount" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Amount (€)</FormLabel>
-                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                                <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
@@ -290,3 +295,5 @@ export function DebtsTab() {
     </div>
   );
 }
+
+    

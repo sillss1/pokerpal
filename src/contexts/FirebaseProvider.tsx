@@ -165,13 +165,18 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     const debtsCollection = collection(db, 'homeGames', homeGameCode, 'debts');
     
     const debtPayload: any = {
-      ...debt,
+      fromPlayer: debt.fromPlayer,
+      toPlayer: debt.toPlayer,
+      amount: debt.amount,
+      description: debt.description,
       settled: false,
       date: Timestamp.now(),
       settledDate: null
     };
 
     if (debt.sessionId && debt.sessionDate) {
+      debtPayload.sessionId = debt.sessionId;
+      debtPayload.sessionDate = debt.sessionDate;
       debtPayload.description = `From session on ${new Date(debt.sessionDate).toLocaleDateString()}`;
     }
 
@@ -248,3 +253,5 @@ export const useFirebase = (): FirebaseContextType => {
   }
   return context;
 };
+
+    
