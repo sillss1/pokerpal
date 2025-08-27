@@ -13,9 +13,9 @@ Welcome to PokerPal! This is a complete web application for tracking poker sessi
 
 ---
 
-## 🛠️ Initial Setup (First-time use)
+## 🛠️ Initial Setup & Deployment
 
-To use PokerPal, you need to connect it to your own Firebase project. This is a one-time setup.
+To use PokerPal, you need to connect it to your own Firebase project and deploy it. This setup ensures that your data is private and secure. The recommended way to deploy is with Vercel.
 
 ### 1. Create a Firebase Project
 
@@ -33,7 +33,7 @@ To use PokerPal, you need to connect it to your own Firebase project. This is a 
 
 ### 3. Set Firestore Security Rules
 
-For a small, trusted group of friends, you can use open rules that allow anyone with the project credentials to read and write data.
+For a small, trusted group of friends, you can use open rules that allow anyone authenticated with your project to read and write data.
 
 1.  In the Firestore section, go to the **"Rules"** tab.
 2.  Replace the existing rules with the following:
@@ -41,6 +41,7 @@ For a small, trusted group of friends, you can use open rules that allow anyone 
     rules_version = '2';
     service cloud.firestore {
       match /databases/{database}/documents {
+        // Allow read/write access to all documents
         match /{document=**} {
           allow read, write: if true;
         }
@@ -49,51 +50,46 @@ For a small, trusted group of friends, you can use open rules that allow anyone 
     ```
 3.  Click **"Publish"**.
 
-### 4. Get Your Firebase Credentials
+### 4. Get Your Firebase App Credentials
 
 1.  Go to **Project Settings** (click the ⚙️ icon next to "Project Overview").
 2.  In the **"General"** tab, scroll down to **"Your apps"**.
 3.  Click the **web icon (`</>`)** to create a new web app.
 4.  Give it a nickname (e.g., "PokerPal Web") and click **"Register app"**.
-5.  Firebase will show you your configuration credentials (a JavaScript object with `apiKey`, `authDomain`, etc.). **Copy these values.** You will need them for the app's setup page.
+5.  Firebase will show you your configuration credentials (an object with `apiKey`, `authDomain`, etc.). **Copy these values.** You will need them for the deployment step.
 
----
+### 5. Deploy with Vercel (Recommended)
 
-## 🚀 Deployment
-
-You can deploy this application to any modern hosting provider. Here are instructions for Vercel and Netlify.
-
-### Option 1: Vercel (Recommended)
-
-Vercel is the creator of Next.js and provides a seamless deployment experience.
+Vercel provides a seamless deployment experience for Next.js apps.
 
 1.  **Fork this Repository**: Create a copy of this project on your own GitHub account.
 2.  **Sign up on Vercel**: Go to [vercel.com](https://vercel.com) and sign up with your GitHub account.
 3.  **Import Project**: From your Vercel dashboard, click **"Add New... > Project"**.
-4.  **Select Repository**: Find and select the repository you forked. Vercel will automatically detect that it's a Next.js project.
-5.  **Deploy**: Click the **"Deploy"** button. No extra configuration is needed.
-6.  **Done!**: Vercel will build and deploy your site, giving you a public URL (e.g., `https://poker-pal-xxx.vercel.app`).
+4.  **Select Repository**: Find and select the repository you forked.
+5.  **Configure Environment Variables**:
+    *   Expand the **"Environment Variables"** section.
+    *   Add the Firebase credentials you copied earlier. Each key-value pair from your Firebase config needs to be a separate environment variable. The names must be:
+        -   `NEXT_PUBLIC_FIREBASE_API_KEY`
+        -   `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+        -   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+        -   `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+        -   `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+        -   `NEXT_PUBLIC_FIREBASE_APP_ID`
+6.  **Deploy**: Click the **"Deploy"** button.
+7.  **Done!**: Vercel will build and deploy your site, giving you a public URL (e.g., `https://poker-pal-xxx.vercel.app`).
 
-### Option 2: Netlify
+---
 
-1.  **Fork this Repository**: Create a copy of this project on your own GitHub account.
-2.  **Sign up on Netlify**: Go to [netlify.com](https://netlify.com) and sign up with your GitHub account.
-3.  **Import Project**: From your Netlify dashboard, click **"Add new site > Import an existing project"**.
-4.  **Connect to GitHub**: Connect your GitHub account and authorize Netlify.
-5.  **Select Repository**: Choose the repository you forked.
-6.  **Deploy**: Netlify will detect the build settings. Click **"Deploy site"**.
-7.  **Done!**: Netlify will deploy your site and provide a public URL.
-
-### Post-Deploy: Using the App
+## 🚀 Using the App
 
 1.  Open your deployed site's URL.
-2.  Navigate to the **⚙️ Setup** tab.
-3.  Paste the Firebase credentials you copied earlier into the form.
-4.  Set the names for the 5 players in your group.
-5.  Click **"Save Configuration"**.
-6.  The app will connect to your Firebase project, and you're ready to start tracking sessions!
+2.  **Create a Home Game**: The first person to use the app will be prompted to create a new "Home Game". This involves:
+    *   Choosing a `Home Game Code` (like a password for your group).
+    *   Adding the names of the initial players.
+3.  **Share with Friends**: Share the URL and the `Home Game Code` with your friends.
+4.  **Join the Game**: Your friends will use the "Join Game" tab and enter the code to get access to the shared session data.
 
-Share the URL with your friends. Since the configuration is stored in *your* browser, they will need to perform the same setup step in their own browsers to interact with the data. For a shared experience where they don't need to enter the config, you would hard-code the credentials, which is not recommended for public repositories.
+From now on, everyone in the group can add sessions and see the shared leaderboard!
 
 ---
 
@@ -101,20 +97,17 @@ Share the URL with your friends. Since the configuration is stored in *your* bro
 
 To run the project on your local machine:
 
-1.  Clone the repository:
-    ```bash
-    git clone <your-fork-url>
-    cd <repository-name>
+1.  Clone the repository.
+2.  Install dependencies: `npm install`
+3.  Create a file named `.env.local` in the root of your project.
+4.  Add your Firebase credentials to the `.env.local` file like this:
     ```
-
-2.  Install dependencies:
-    ```bash
-    npm install
+    NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+    NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
     ```
-
-3.  Run the development server:
-    ```bash
-    npm run dev
-    ```
-
-4.  Open [http://localhost:9002](http://localhost:9002) in your browser to see the result.
+5.  Run the development server: `npm run dev`
+6.  Open [http://localhost:9002](http://localhost:9002) in your browser.

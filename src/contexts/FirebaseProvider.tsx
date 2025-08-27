@@ -2,10 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { initializeApp, getApps, deleteApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, setDoc, getDoc, Firestore, writeBatch, updateDoc } from 'firebase/firestore';
+import { initializeApp, getApps, deleteApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore } from 'firebase/firestore';
 import { FirebaseConfig, Session } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { getFirebaseConfig } from '@/lib/firebase-config';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -29,8 +30,20 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [firebaseConfig, setFirebaseConfig] = useLocalStorage<FirebaseConfig | null>('firebaseConfig', null);
+  
+  const [firebaseConfig, setFirebaseConfig] = useState<FirebaseConfig | null>(null);
   const [storedPlayerNames, setStoredPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
+
+  useEffect(() => {
+    const config = getFirebaseConfig();
+    if (config) {
+      setFirebaseConfig(config);
+    } else {
+        setError("Firebase configuration is missing. Please set up environment variables.");
+        setConnectionStatus('error');
+        setLoading(false);
+    }
+  }, []);
 
   const initialize = useCallback(async (config: FirebaseConfig | null) => {
     if (!config) {
@@ -43,14 +56,13 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     setConnectionStatus('connecting');
     setLoading(true);
 
+    let app: FirebaseApp;
     try {
-      if (getApps().length > 0) {
-        for (const app of getApps()) {
-            await deleteApp(app);
-        }
+      if (getApps().length) {
+        app = getApps()[0];
+        await deleteApp(app);
       }
-      
-      const app = initializeApp(config);
+      app = initializeApp(config);
       const firestore = getFirestore(app);
       setDb(firestore);
 
@@ -59,10 +71,18 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
       let currentPlayers = storedPlayerNames || [];
       if (playerNamesSnap.exists()) {
         currentPlayers = playerNamesSnap.data().names;
+        setPlayerNames(currentPlayers);
+        setStoredPlayerNames(currentPlayers);
+      } else if (storedPlayerNames) {
+        // If config exists in local storage but not in DB, it's the first run for this DB.
+        // Let's write it to the DB.
+        const accessDocRef = doc(firestore, 'config', 'access');
+        const accessDocSnap = await getDoc(accessDocRef);
+        if(!accessDocSnap.exists()) { // Only do this if the game is truly new
+             await updateDoc(playerNamesDocRef, { names: storedPlayerNames });
+        }
       }
-      setPlayerNames(currentPlayers);
-      setStoredPlayerNames(currentPlayers);
-
+     
 
       const sessionsCollection = collection(firestore, 'sessions');
       const unsubscribe = onSnapshot(sessionsCollection, (snapshot) => {
@@ -85,7 +105,7 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
       console.error("Firebase initialization error:", e);
       let errorMessage = "Firebase initialization failed. Check your configuration.";
       if (e.code === 'invalid-api-key') {
-        errorMessage = 'Invalid API Key. Please check your Firebase configuration.';
+        errorMessage = 'Invalid API Key. Please check your Firebase environment variables.';
       }
       setError(errorMessage);
       setConnectionStatus('error');
@@ -95,7 +115,9 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   }, [storedPlayerNames, setStoredPlayerNames]);
 
   useEffect(() => {
-    initialize(firebaseConfig);
+    if(firebaseConfig) {
+        initialize(firebaseConfig);
+    }
   }, [firebaseConfig, initialize]);
 
   const updatePlayerNames = async (newPlayerNames: string[]) => {
@@ -132,5 +154,3 @@ export const useFirebase = (): FirebaseContextType => {
   }
   return context;
 };
-
-    

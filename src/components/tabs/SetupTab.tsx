@@ -157,6 +157,10 @@ export function SetupTab() {
                 <h4 className="font-semibold text-sm">Project ID</h4>
                 <p className="text-muted-foreground text-sm">{firebaseConfig?.projectId || "N/A"}</p>
             </div>
+             <div>
+                <h4 className="font-semibold text-sm">App ID</h4>
+                <p className="text-muted-foreground text-sm">{firebaseConfig?.appId || "N/A"}</p>
+            </div>
         </CardContent>
       </Card>
 
@@ -172,5 +176,3 @@ export function SetupTab() {
     </div>
   );
 }
-
-    
