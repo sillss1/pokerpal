@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, User, MapPin } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,116 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+
+const addPlayerSchema = z.object({
+  newPlayerName: z.string().min(1, "Player name cannot be empty."),
+});
+type AddPlayerFormValues = z.infer<typeof addPlayerSchema>;
+
+function PlayerManagement() {
+    const { playerNames, updatePlayerNames } = useFirebase();
+    const { toast } = useToast();
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const form = useForm<AddPlayerFormValues>({
+        resolver: zodResolver(addPlayerSchema),
+        defaultValues: { newPlayerName: "" },
+    });
+
+    const handleAddPlayer = async (values: AddPlayerFormValues) => {
+        if (playerNames.includes(values.newPlayerName)) {
+            form.setError("newPlayerName", { type: "manual", message: "This player already exists."});
+            return;
+        }
+        if (playerNames.length >= 10) {
+            toast({
+                variant: "destructive",
+                title: "Player Limit Reached",
+                description: "You cannot add more than 10 players.",
+            });
+            return;
+        }
+        setIsUpdating(true);
+        try {
+            const newPlayerList = [...playerNames, values.newPlayerName];
+            await updatePlayerNames(newPlayerList);
+            toast({ title: "Player Added", description: `${values.newPlayerName} has been added to the game.` });
+            form.reset();
+        } catch (e) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to add player." });
+        } finally {
+            setIsUpdating(false);
+        }
+    }
+
+    const handleRemovePlayer = async (playerName: string) => {
+        if (playerNames.length <= 1) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Remove Player",
+                description: "You must have at least one player in the game.",
+            });
+            return;
+        }
+        setIsUpdating(true);
+        try {
+            const newPlayerList = playerNames.filter(name => name !== playerName);
+            await updatePlayerNames(newPlayerList);
+            toast({ title: "Player Removed", description: `${playerName} has been removed from the game.` });
+        } catch (e) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to remove player." });
+        } finally {
+            setIsUpdating(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Users />Player Management</CardTitle>
+                <CardDescription>Add or remove players from the current Home Game. You can have a maximum of 10 players.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleAddPlayer)} className="flex items-start gap-2">
+                         <FormField
+                            control={form.control}
+                            name="newPlayerName"
+                            render={({ field }) => (
+                                <FormItem className="flex-grow">
+                                    <FormLabel className="sr-only">New Player Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter new player name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        <Button type="submit" disabled={isUpdating}>
+                            <UserPlus className="mr-2 h-4 w-4"/> Add Player
+                        </Button>
+                    </form>
+                </Form>
+                 <div>
+                    <h4 className="font-semibold text-sm mb-2">Current Players ({playerNames.length}/10)</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {playerNames.map(name => (
+                            <Badge key={name} variant="secondary" className="pl-3 pr-1 py-1 text-sm flex items-center gap-2">
+                                {name}
+                                <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" onClick={() => handleRemovePlayer(name)} disabled={isUpdating}>
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            </Badge>
+                        ))}
+                        {playerNames.length === 0 && <p className="text-sm text-muted-foreground">No players configured.</p>}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 export function SessionsTab() {
   const { db, playerNames, sessions, loading } = useFirebase();
@@ -80,7 +190,7 @@ export function SessionsTab() {
         return Math.abs(total) < 0.01; // Allow for floating point inaccuracies
     }, {
         message: "The sum of all player results must be 0.",
-        path: [playerNames[0]] // Show error on the first player field
+        path: [playerNames.length > 0 ? playerNames[0] : ''] // Show error on the first player field
     });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -113,9 +223,12 @@ export function SessionsTab() {
         title: "Success",
         description: "New session added successfully.",
       });
-      form.reset();
-      // Keep date as is for next entry
-      form.setValue("date", values.date);
+      form.reset({
+          ...playerNames.reduce((acc, name) => ({ ...acc, [name]: "" }), {}),
+          date: values.date, // Keep date
+          location: values.location, // Keep location
+          addedBy: values.addedBy, // Keep adder
+      });
     } catch (error) {
       console.error("Error adding document: ", error);
       toast({
@@ -154,6 +267,7 @@ export function SessionsTab() {
             <PlusCircle className="w-5 h-5"/>
             Add New Session
         </h3>
+        {playerNames.length > 0 ? (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -268,6 +382,9 @@ export function SessionsTab() {
             </Button>
           </form>
         </Form>
+        ) : (
+          <p className="text-muted-foreground">Please add players in the Player Management section below to start logging sessions.</p>
+        )}
       </div>
       
       <div className="mt-8">
@@ -341,6 +458,10 @@ export function SessionsTab() {
             </TableBody>
           </Table>
         </ScrollArea>
+      </div>
+
+      <div className="mt-8">
+        <PlayerManagement />
       </div>
     </div>
   );
