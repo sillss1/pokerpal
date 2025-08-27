@@ -59,7 +59,6 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 
@@ -466,3 +465,4 @@ export function SessionsTab() {
     </div>
   );
 }
+
