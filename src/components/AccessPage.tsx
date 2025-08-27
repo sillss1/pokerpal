@@ -17,8 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
 import { Trash2, PlusCircle, LogIn, Server } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getFirebaseConfig } from "@/lib/firebase-config";
-import { FirebaseConfig } from "@/lib/types";
 
 // Schemas
 const joinGameSchema = z.object({
@@ -38,10 +36,9 @@ type CreateGameFormValues = z.infer<typeof createGameSchema>;
 
 // Join Game Form Component
 function JoinGameForm() {
-    const { login } = useAuth();
+    const { login, firebaseConfig } = useAuth();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
-    const firebaseConfig = getFirebaseConfig();
 
     const form = useForm<JoinGameFormValues>({
         resolver: zodResolver(joinGameSchema),
@@ -70,8 +67,7 @@ function JoinGameForm() {
                 throw new Error("Invalid Home Game Code.");
             }
             
-            const dbPlayerNames = gameDocSnap.data().playerNames || [];
-            login(values.homeGameCode, dbPlayerNames);
+            login(values.homeGameCode);
             toast({ title: "Success!", description: "Successfully joined the Home Game." });
 
         } catch (error: any) {
@@ -104,10 +100,9 @@ function JoinGameForm() {
 
 // Create Game Form Component
 function CreateGameForm() {
-    const { login } = useAuth();
+    const { login, firebaseConfig } = useAuth();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
-    const firebaseConfig = getFirebaseConfig();
 
     const form = useForm<CreateGameFormValues>({
         resolver: zodResolver(createGameSchema),
@@ -147,7 +142,7 @@ function CreateGameForm() {
                 playerNames: playerNames
             });
 
-            login(values.homeGameCode, playerNames);
+            login(values.homeGameCode);
             toast({ title: "Home Game Created!", description: "Successfully created and joined your new Home Game." });
 
         } catch (error: any) {
@@ -204,7 +199,7 @@ function CreateGameForm() {
 
 // Main Access Page Component
 export function AccessPage() {
-    const firebaseConfig = getFirebaseConfig();
+    const { firebaseConfig } = useAuth();
 
     return (
         <Card className="w-full max-w-2xl">

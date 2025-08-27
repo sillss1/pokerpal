@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, UserPlus, Trash2, Users } from "lucide-react";
+import { LogOut, UserPlus, Trash2, Users, AlertCircle } from "lucide-react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "../ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const addPlayerSchema = z.object({
   newPlayerName: z.string().min(1, "Player name cannot be empty."),
@@ -23,8 +23,8 @@ const addPlayerSchema = z.object({
 type AddPlayerFormValues = z.infer<typeof addPlayerSchema>;
 
 export function SetupTab() {
-  const { firebaseConfig, playerNames, connectionStatus, error, updatePlayerNames } = useFirebase();
-  const { homeGameCode } = useAuth();
+  const { playerNames, connectionStatus, error, updatePlayerNames } = useFirebase();
+  const { homeGameCode, firebaseConfig } = useAuth();
   const { logout } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -98,18 +98,38 @@ export function SetupTab() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-medium">Connection Status</h3>
-            {getStatusBadge()}
-        </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </div>
+       <Card>
+        <CardHeader>
+          <CardTitle>Connection Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+                <h4 className="font-semibold text-sm">Connection Status</h4>
+                {getStatusBadge()}
+            </div>
+            {error && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Connection Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
+             <div>
+                <h4 className="font-semibold text-sm">Home Game Code</h4>
+                <p className="text-muted-foreground text-sm">{homeGameCode || "N/A"}</p>
+            </div>
+            <div>
+                <h4 className="font-semibold text-sm">Firebase Project ID</h4>
+                <p className="text-muted-foreground text-sm">{firebaseConfig?.projectId || "N/A"}</p>
+            </div>
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Users />Player Management</CardTitle>
-            <CardDescription>Add or remove players from the current Home Game.</CardDescription>
+            <CardDescription>Add or remove players from the current Home Game. You can have a maximum of 10 players.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <Form {...form}>
@@ -151,30 +171,16 @@ export function SetupTab() {
       
       <Card>
         <CardHeader>
-            <CardTitle>Current Configuration</CardTitle>
-            <CardDescription>This is the configuration for the connected group.</CardDescription>
+            <CardTitle>Actions</CardTitle>
+            <CardDescription>If you need to connect to a different group, you can reset the current configuration.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-             <div>
-                <h4 className="font-semibold text-sm">Home Game Code</h4>
-                <p className="text-muted-foreground text-sm">{homeGameCode || "N/A"}</p>
-            </div>
-            <div>
-                <h4 className="font-semibold text-sm">Project ID</h4>
-                <p className="text-muted-foreground text-sm">{firebaseConfig?.projectId || "N/A"}</p>
-            </div>
+        <CardContent>
+            <Button variant="destructive" onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" /> Reset and Log Out
+            </Button>
         </CardContent>
       </Card>
 
-      <div>
-        <h3 className="text-lg font-medium">Actions</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-            If you need to connect to a different group, you can reset the current configuration.
-        </p>
-        <Button variant="destructive" onClick={logout}>
-            <LogOut className="mr-2 h-4 w-4" /> Reset and Log Out
-        </Button>
-      </div>
     </div>
   );
 }

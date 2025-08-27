@@ -1,13 +1,16 @@
 
 "use client";
 
-import React, { createContext, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, ReactNode, useCallback, useState, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { getFirebaseConfig } from '@/lib/firebase-config';
+import { FirebaseConfig } from '@/lib/types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   homeGameCode: string | null;
-  login: (homeGameCode: string, playerNames: string[]) => void;
+  firebaseConfig: FirebaseConfig | null;
+  login: (homeGameCode: string) => void;
   logout: () => void;
 }
 
@@ -16,23 +19,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('pokerpal-auth', false);
   const [homeGameCode, setHomeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
-  const [, setPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
+  const [firebaseConfig, setFirebaseConfig] = useState<FirebaseConfig | null>(null);
 
-  const login = useCallback((code: string, players: string[]) => {
+  useEffect(() => {
+    setFirebaseConfig(getFirebaseConfig());
+  }, []);
+
+  const login = useCallback((code: string) => {
     setHomeGameCode(code);
-    setPlayerNames(players);
     setIsAuthenticated(true);
-  }, [setHomeGameCode, setPlayerNames, setIsAuthenticated]);
+  }, [setHomeGameCode, setIsAuthenticated]);
 
   const logout = useCallback(() => {
     setHomeGameCode(null);
-    setPlayerNames(null);
     setIsAuthenticated(false);
     // Use a timeout to ensure local storage is cleared before reload
     setTimeout(() => window.location.reload(), 100);
-  }, [setHomeGameCode, setPlayerNames, setIsAuthenticated]);
+  }, [setHomeGameCode, setIsAuthenticated]);
 
-  const value = { isAuthenticated, login, logout, homeGameCode };
+  const value = { isAuthenticated, login, logout, homeGameCode, firebaseConfig };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
