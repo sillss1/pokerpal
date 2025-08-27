@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { SetupTab } from "./tabs/SetupTab";
 import { SessionsTab } from "./tabs/SessionsTab";
 import { LeaderboardTab } from "./tabs/LeaderboardTab";
-import { Trophy, History, Settings } from "lucide-react";
+import { DebtsTab } from "./tabs/DebtsTab";
+import { Trophy, History, Settings, HandCoins } from "lucide-react";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
 
 export function PokerPal() {
@@ -23,7 +24,7 @@ export function PokerPal() {
       </header>
 
       <Tabs defaultValue="sessions" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-card/50 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm">
           <TabsTrigger value="sessions">
             <History className="w-4 h-4 mr-2" />
             Sessions
@@ -31,6 +32,10 @@ export function PokerPal() {
           <TabsTrigger value="leaderboard">
             <Trophy className="w-4 h-4 mr-2" />
             Leaderboard
+          </TabsTrigger>
+          <TabsTrigger value="debts">
+            <HandCoins className="w-4 h-4 mr-2" />
+            Debts
           </TabsTrigger>
           <TabsTrigger value="setup">
             <Settings className="w-4 h-4 mr-2" />
@@ -60,6 +65,19 @@ export function PokerPal() {
             </CardHeader>
             <CardContent>
               <LeaderboardTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="debts">
+          <Card>
+            <CardHeader>
+              <CardTitle>Debt Management</CardTitle>
+              <CardDescription>
+                Track and settle debts between players.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DebtsTab />
             </CardContent>
           </Card>
         </TabsContent>

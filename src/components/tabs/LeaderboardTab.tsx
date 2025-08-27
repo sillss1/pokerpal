@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useMemo } from "react";
@@ -40,6 +41,7 @@ export function LeaderboardTab() {
         name,
         totalWinnings: 0,
         sessionsWon: 0,
+        sessionsLost: 0,
         winRate: 0,
         biggestWin: 0,
         biggestLoss: 0,
@@ -59,6 +61,7 @@ export function LeaderboardTab() {
               stats[playerName].biggestWin = result;
             }
           } else if (result < 0) {
+            stats[playerName].sessionsLost += 1;
             if (result < stats[playerName].biggestLoss) {
               stats[playerName].biggestLoss = result;
             }
@@ -114,9 +117,10 @@ export function LeaderboardTab() {
           <CardContent className="space-y-3 pt-2">
             <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
             <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
-            <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} style={{ color: 'hsl(var(--color-gain))' }} />
-            <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} style={{ color: 'hsl(var(--color-loss))' }} />
             <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
+            <StatCard icon={TrendingDown} label="Sessions Lost" value={player.sessionsLost} />
+            <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
+            <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
           </CardContent>
         </Card>
       ))}

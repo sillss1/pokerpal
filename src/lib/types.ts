@@ -16,10 +16,21 @@ export interface PlayerStats {
     name: string;
     totalWinnings: number;
     sessionsWon: number;
+    sessionsLost: number;
     winRate: number;
     biggestWin: number;
     biggestLoss: number;
     totalSessions: number;
+}
+
+export interface Debt {
+  id: string;
+  fromPlayer: string;
+  toPlayer: string;
+  amount: number;
+  settled: boolean;
+  date: Timestamp;
+  settledDate: Timestamp | null;
 }
 
 export interface FirebaseConfig {
