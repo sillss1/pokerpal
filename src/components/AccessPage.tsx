@@ -88,7 +88,7 @@ function JoinGameForm() {
                 <FormField control={form.control} name="homeGameCode" render={({ field }) => (
                     <FormItem><FormLabel>Home Game Code</FormLabel><FormControl><Input type="password" placeholder="Enter existing game code" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <Button type="submit" className="w-full" disabled={isLoading || !firebaseConfig}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Joining..." : "Join Game"}
                 </Button>
             </form>
@@ -186,7 +186,7 @@ function CreateGameForm() {
                         <FormMessage>{form.formState.errors.players?.message}</FormMessage>
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading || !firebaseConfig}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating..." : "Create Game"}
                 </Button>
             </form>
