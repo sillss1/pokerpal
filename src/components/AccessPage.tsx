@@ -60,6 +60,7 @@ function JoinGameForm() {
 
         let tempApp: FirebaseApp | undefined;
         try {
+            // Use a temporary app for validation to not interfere with the main app instance
             tempApp = initializeApp(firebaseConfig, `validation-join-${Date.now()}`);
             const db = getFirestore(tempApp);
             
@@ -82,7 +83,7 @@ function JoinGameForm() {
             if (error.message.includes("Invalid Home Game Code")) {
                 errorMessage = "The Home Game code you entered is incorrect.";
             } else if (error.code) {
-                errorMessage = "Firebase connection failed. Check your environment variables.";
+                 errorMessage = `Firebase connection failed. Check your environment variables and Firestore rules. Error: ${error.code}`;
             }
             toast({ variant: "destructive", title: "Join Failed", description: errorMessage });
         } finally {
@@ -135,6 +136,7 @@ function CreateGameForm() {
         const playerNames = values.players.map(p => p.name);
         let tempApp: FirebaseApp | undefined;
         try {
+            // Use a temporary app for validation to not interfere with the main app instance
             tempApp = initializeApp(firebaseConfig, `validation-create-${Date.now()}`);
             const db = getFirestore(tempApp);
 
@@ -159,7 +161,7 @@ function CreateGameForm() {
             if (error.message.includes("already been configured")) {
                 errorMessage = "A game is already set up. Use the 'Join Game' tab or reset your Firebase data.";
             } else if (error.code) {
-                errorMessage = "Firebase connection failed. Check your environment variables.";
+                errorMessage = `Firebase connection failed. Check your environment variables and Firestore rules. Error: ${error.code}`;
             }
             toast({ variant: "destructive", title: "Creation Failed", description: errorMessage });
         } finally {
