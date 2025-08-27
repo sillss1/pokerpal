@@ -182,25 +182,25 @@ function PlayerManagement() {
 
 function SessionCorrector({ form }: { form: any }) {
     const playerNames = useFirebase().playerNames;
-    const watchedValues = form.watch(playerNames.map(name => `${name}.result`));
+    const watchedPlayerResults = form.watch(playerNames.map(name => `${name}.result`));
 
     const { totalWins, totalLosses } = useMemo(() => {
         let wins = 0;
         let losses = 0;
         
         playerNames.forEach((name, index) => {
-            const result = parseFloat(watchedValues[index]) || 0;
+            const result = parseFloat(watchedPlayerResults[index]) || 0;
             if (result > 0) wins += result;
             if (result < 0) losses += result;
         });
 
         return { totalWins: wins, totalLosses: losses };
-    }, [watchedValues, playerNames]);
+    }, [watchedPlayerResults, playerNames]);
     
     const balance = totalWins + totalLosses;
     const isBalanced = Math.abs(balance) < 0.01;
 
-    if (totalWins === 0 && totalLosses === 0) {
+    if (playerNames.length === 0 || (totalWins === 0 && totalLosses === 0)) {
         return null;
     }
 
@@ -259,7 +259,8 @@ export function SessionsTab() {
         path: [''] // General form error
     });
 
-    const getInitialFormValues = () => {
+    const getInitialFormValues = useMemo(() => {
+      return () => {
         const initialPlayerValues = playerNames.reduce((acc, name) => {
             acc[name] = { result: 0, buyIns: 1 };
             return acc;
@@ -272,7 +273,8 @@ export function SessionsTab() {
             buyInAmount: 10,
             ...initialPlayerValues,
         };
-    };
+      }
+    }, [playerNames]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -282,15 +284,15 @@ export function SessionsTab() {
   useEffect(() => {
     form.reset(getInitialFormValues());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerNames, form]);
+  }, [playerNames, getInitialFormValues]);
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
     
     const playersResult: Record<string, SessionPlayer> = playerNames.reduce((acc, name) => {
         acc[name] = {
-            result: values[name].result as number,
-            buyIns: values[name].buyIns as number
+            result: values[name].result,
+            buyIns: values[name].buyIns
         };
         return acc;
     }, {} as Record<string, SessionPlayer>);
@@ -312,7 +314,7 @@ export function SessionsTab() {
         title: "Success",
         description: "New session added successfully.",
       });
-      form.reset();
+      form.reset(getInitialFormValues());
     } catch (error) {
       console.error("Error adding document: ", error);
       toast({
