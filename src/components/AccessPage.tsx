@@ -199,7 +199,7 @@ export function AccessPage() {
     const { firebaseConfig } = useAuth();
 
     return (
-        <Card className="w-full max-w-2xl">
+        <Card className="w-full max-w-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader className="text-center p-6">
                 <div className="flex justify-center items-center gap-4 mb-2">
                     <PokerChipIcon className="w-12 h-12 text-primary" />
@@ -224,8 +224,8 @@ export function AccessPage() {
                 ) : (
                     <Tabs defaultValue="join" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="join"><LogIn className="mr-2"/>Join Game</TabsTrigger>
-                            <TabsTrigger value="create"><PlusCircle className="mr-2"/>Create Game</TabsTrigger>
+                            <TabsTrigger value="join"><LogIn className="mr-2 h-4 w-4"/>Join Game</TabsTrigger>
+                            <TabsTrigger value="create"><PlusCircle className="mr-2 h-4 w-4"/>Create Game</TabsTrigger>
                         </TabsList>
                         <TabsContent value="join" className="p-6">
                            <JoinGameForm />

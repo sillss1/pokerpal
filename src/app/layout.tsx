@@ -1,11 +1,17 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
+import { Inter } from 'next/font/google';
 
 export const metadata: Metadata = {
   title: 'PokerPal',
   description: 'Track your poker sessions with friends.',
 };
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export default function RootLayout({
   children,
@@ -13,13 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased h-full bg-background gradient-background">
+    <html lang="en" className={`h-full dark ${inter.className}`}>
+      <body className="antialiased h-full bg-background gradient-background">
         {children}
         <Toaster />
       </body>
