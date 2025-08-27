@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
 import { FirebaseConfig } from "@/lib/types";
 import { Trash2, PlusCircle, Users, LogIn } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // Schemas
 const firebaseConfigSchema = z.object({
@@ -45,29 +46,33 @@ type CreateGameFormValues = z.infer<typeof createGameSchema>;
 
 // Firebase Fields Component
 const FirebaseFields = () => (
-    <div>
-        <h3 className="text-base font-semibold mb-4">Firebase Credentials</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField control={useFormContext().control} name="projectId" render={({ field }) => (
-                <FormItem><FormLabel>Project ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={useFormContext().control} name="appId" render={({ field }) => (
-                <FormItem><FormLabel>App ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={useFormContext().control} name="apiKey" render={({ field }) => (
-                <FormItem><FormLabel>API Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={useFormContext().control} name="authDomain" render={({ field }) => (
-                <FormItem><FormLabel>Auth Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={useFormContext().control} name="storageBucket" render={({ field }) => (
-                <FormItem><FormLabel>Storage Bucket</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={useFormContext().control} name="messagingSenderId" render={({ field }) => (
-                <FormItem><FormLabel>Messaging Sender ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-        </div>
-    </div>
+    <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="item-1">
+            <AccordionTrigger>Firebase Credentials</AccordionTrigger>
+            <AccordionContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                    <FormField control={useFormContext().control} name="projectId" render={({ field }) => (
+                        <FormItem><FormLabel>Project ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={useFormContext().control} name="appId" render={({ field }) => (
+                        <FormItem><FormLabel>App ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={useFormContext().control} name="apiKey" render={({ field }) => (
+                        <FormItem><FormLabel>API Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={useFormContext().control} name="authDomain" render={({ field }) => (
+                        <FormItem><FormLabel>Auth Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={useFormContext().control} name="storageBucket" render={({ field }) => (
+                        <FormItem><FormLabel>Storage Bucket</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={useFormContext().control} name="messagingSenderId" render={({ field }) => (
+                        <FormItem><FormLabel>Messaging Sender ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                </div>
+            </AccordionContent>
+        </AccordionItem>
+    </Accordion>
 );
 
 // Join Game Form Component
@@ -122,13 +127,13 @@ function JoinGameForm() {
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FirebaseFields />
                 <div>
                     <h3 className="text-base font-semibold mb-4">Home Game Details</h3>
                     <FormField control={form.control} name="homeGameCode" render={({ field }) => (
                         <FormItem><FormLabel>Home Game Code</FormLabel><FormControl><Input type="password" placeholder="Enter existing game code" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
+                <FirebaseFields />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Joining..." : "Join Game"}
                 </Button>
@@ -200,7 +205,6 @@ function CreateGameForm() {
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FirebaseFields />
                 <div>
                     <h3 className="text-base font-semibold mb-4">Home Game Details</h3>
                     <div className="space-y-4">
@@ -232,6 +236,7 @@ function CreateGameForm() {
                         </div>
                     </div>
                 </div>
+                <FirebaseFields />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating..." : "Create Game"}
                 </Button>
@@ -270,5 +275,3 @@ export function AccessPage() {
         </Card>
     );
 }
-
-    
