@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full ${inter.className}`}>
+    <html lang="en" className={`h-full dark ${inter.className}`}>
       <body className="antialiased h-full bg-background gradient-background">
         {children}
         <Toaster />
