@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, FirebaseApp, getApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore, setDoc } from 'firebase/firestore';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore } from 'firebase/firestore';
 import { FirebaseConfig, Session } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { getFirebaseConfig } from '@/lib/firebase-config';
@@ -45,9 +45,16 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [, setStoredPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
 
   useEffect(() => {
-    if (!firebaseConfig || !homeGameCode) {
-        setError("Firebase configuration or Home Game code is missing.");
+    if (!firebaseConfig) {
+        setError("Firebase configuration is missing from environment variables.");
         setConnectionStatus('error');
+        setLoading(false);
+        return;
+    }
+    
+    if (!homeGameCode) {
+        // This is not an error state, it just means the user is not logged in.
+        setConnectionStatus('disconnected');
         setLoading(false);
         return;
     }
