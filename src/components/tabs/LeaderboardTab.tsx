@@ -5,8 +5,9 @@ import React, { useMemo } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PlayerStats, Session } from "@/lib/types";
-import { Crown, TrendingUp, TrendingDown, Swords, Percent, Target } from "lucide-react";
+import { Crown, TrendingUp, TrendingDown, Swords, Percent, Target, Trophy } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { format } from "date-fns";
 
 const getRankingColor = (rank: number) => {
   switch (rank) {
@@ -79,12 +80,30 @@ export function LeaderboardTab() {
     return Object.values(stats).sort((a, b) => b.totalWinnings - a.totalWinnings);
   }, [sessions, playerNames]);
 
+  const biggestSessions = useMemo(() => {
+    return sessions
+        .map(session => {
+            const totalPot = Object.values(session.players).filter(v => v > 0).reduce((sum, v) => sum + v, 0);
+            return { ...session, totalPot };
+        })
+        .sort((a, b) => b.totalPot - a.totalPot)
+        .slice(0, 5); // Top 5 biggest sessions
+  }, [sessions]);
+
   if (loading) {
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-                <Card key={i}><CardHeader><Skeleton className="h-6 w-24" /></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /></CardContent></Card>
-            ))}
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <Card key={i}><CardHeader><Skeleton className="h-6 w-24" /></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /></CardContent></Card>
+                ))}
+            </div>
+            <Card>
+                <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+                <CardContent className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                </CardContent>
+            </Card>
         </div>
     )
   }
@@ -98,32 +117,62 @@ export function LeaderboardTab() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {playerStats.map((player, index) => (
-        <Card key={player.name} className={`transition-all border-2 ${getRankingColor(index)}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xl font-bold flex items-center gap-2">
-              {index < 3 && <Crown className={`w-6 h-6 ${
-                index === 0 ? "text-primary" :
-                index === 1 ? "text-slate-400" :
-                "text-amber-600"
-              }`} />}
-              {player.name}
-            </CardTitle>
-            <div className={`text-2xl font-bold`} style={{ color: player.totalWinnings >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
-                {player.totalWinnings.toFixed(2)}€
+    <div className="space-y-8">
+        <div>
+            <h3 className="text-lg font-medium mb-4">Player Rankings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {playerStats.map((player, index) => (
+                <Card key={player.name} className={`transition-all border-2 ${getRankingColor(index)}`}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      {index < 3 && <Crown className={`w-6 h-6 ${
+                        index === 0 ? "text-primary" :
+                        index === 1 ? "text-slate-400" :
+                        "text-amber-600"
+                      }`} />}
+                      {player.name}
+                    </CardTitle>
+                    <div className={`text-2xl font-bold`} style={{ color: player.totalWinnings >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
+                        {player.totalWinnings.toFixed(2)}€
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 pt-2">
+                    <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
+                    <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
+                    <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
+                    <StatCard icon={TrendingDown} label="Sessions Lost" value={player.sessionsLost} />
+                    <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
+                    <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-2">
-            <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
-            <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
-            <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
-            <StatCard icon={TrendingDown} label="Sessions Lost" value={player.sessionsLost} />
-            <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
-            <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
-          </CardContent>
-        </Card>
-      ))}
+        </div>
+        <div>
+            <h3 className="text-lg font-medium mb-4">Biggest Sessions by Volume</h3>
+            <Card>
+                <CardContent className="pt-6">
+                    {biggestSessions.length > 0 ? (
+                         <div className="space-y-4">
+                            {biggestSessions.map((session, index) => (
+                                <div key={session.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <Trophy className={`w-6 h-6 ${index === 0 ? "text-primary" : "text-muted-foreground"}`} />
+                                        <div>
+                                            <p className="font-semibold">{session.location}</p>
+                                            <p className="text-sm text-muted-foreground">{format(new Date(session.date), "PPP")}</p>
+                                        </div>
+                                    </div>
+                                    <p className="font-bold text-xl text-primary">{session.totalPot.toFixed(2)}€</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-4">No sessions recorded yet.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     </div>
   );
 }

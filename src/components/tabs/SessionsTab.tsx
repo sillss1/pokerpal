@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus, AlertCircle, CheckCircle, HandCoins } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus, AlertCircle, CheckCircle, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -181,6 +181,55 @@ function PlayerManagement() {
     )
 }
 
+function SessionCorrector({ playerNames, watchedValues }: { playerNames: string[], watchedValues: any[]}) {
+    const { totalWins, totalLosses } = useMemo(() => {
+        const wins = playerNames
+            .map((_, index) => parseFloat(watchedValues[index] as any) || 0)
+            .filter(v => v > 0)
+            .reduce((sum, v) => sum + v, 0);
+        
+        const losses = playerNames
+            .map((_, index) => parseFloat(watchedValues[index] as any) || 0)
+            .filter(v => v < 0)
+            .reduce((sum, v) => sum + v, 0);
+            
+        return { totalWins: wins, totalLosses: losses };
+    }, [watchedValues, playerNames]);
+
+    const isBalanced = Math.abs(totalWins + totalLosses) < 0.01;
+
+    if (totalWins === 0 && totalLosses === 0) {
+        return null; // Don't show if all fields are empty/zero
+    }
+
+    return (
+        <Card className="mt-4">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Corrector</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="flex gap-4">
+                    <div className="text-center p-3 rounded-lg bg-gain/10">
+                        <p className="text-sm text-gain font-semibold">Total Wins</p>
+                        <p className="text-2xl font-bold text-gain">{totalWins.toFixed(2)}€</p>
+                    </div>
+                     <div className="text-center p-3 rounded-lg bg-loss/10">
+                        <p className="text-sm text-loss font-semibold">Total Losses</p>
+                        <p className="text-2xl font-bold text-loss">{Math.abs(totalLosses).toFixed(2)}€</p>
+                    </div>
+                </div>
+                <div className={cn(
+                    "flex items-center gap-2 font-bold p-2 rounded-md w-full md:w-auto justify-center",
+                    isBalanced ? "text-gain bg-gain/10" : "text-destructive bg-destructive/10"
+                )}>
+                    {isBalanced ? <CheckCircle /> : <AlertCircle />}
+                    <span>{isBalanced ? "Session is Balanced" : "Session is Unbalanced"}</span>
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 export function SessionsTab() {
   const { playerNames, sessions, loading, addSession, deleteSession } = useFirebase();
   const { toast } = useToast();
@@ -213,12 +262,6 @@ export function SessionsTab() {
   });
 
   const watchedPlayerValues = form.watch(playerNames);
-  const sessionTotal = useMemo(() => {
-    return playerNames.reduce((sum, name, index) => {
-        const value = parseFloat(watchedPlayerValues[index] as any) || 0;
-        return sum + value;
-    }, 0);
-  }, [watchedPlayerValues, playerNames]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
@@ -375,13 +418,6 @@ export function SessionsTab() {
                     <FormLabel className="text-base font-medium">Player Results (€)</FormLabel>
                     <FormDescription>Enter positive values for wins and negative for losses.</FormDescription>
                 </div>
-                <div className={cn(
-                    "flex items-center gap-2 font-bold p-2 rounded-md",
-                    Math.abs(sessionTotal) < 0.01 ? "text-gain bg-gain/10" : "text-destructive bg-destructive/10"
-                )}>
-                    {Math.abs(sessionTotal) < 0.01 ? <CheckCircle /> : <AlertCircle />}
-                    <span>Session Total: {sessionTotal.toFixed(2)}€</span>
-                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
@@ -408,6 +444,7 @@ export function SessionsTab() {
               {isAdding ? "Adding..." : "Add Session"}
             </Button>
           </form>
+          <SessionCorrector playerNames={playerNames} watchedValues={watchedPlayerValues} />
         </Form>
         ) : (
           <p className="text-muted-foreground">Please add players in the Player Management section below to start logging sessions.</p>
