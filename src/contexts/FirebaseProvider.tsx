@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore, addDoc, Timestamp, writeBatch, where, query, getDocs } from 'firebase/firestore';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, Firestore, addDoc, Timestamp, writeBatch, deleteDoc } from 'firebase/firestore';
 import { FirebaseConfig, Session, Debt } from '@/lib/types';
 import { getFirebaseConfig } from '@/lib/firebase-config';
 
@@ -23,7 +23,6 @@ interface FirebaseContextType {
   settleDebt: (debtId: string) => Promise<void>;
   addSession: (session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
-  markSessionSettled: (sessionId: string) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -115,7 +114,11 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
                 const debtsData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
-                } as Debt)).sort((a, b) => b.date.toMillis() - a.date.toMillis());
+                } as Debt)).sort((a, b) => {
+                    if (a.settled && !b.settled) return 1;
+                    if (!a.settled && b.settled) return -1;
+                    return b.date.toMillis() - a.date.toMillis()
+                });
                 setDebts(debtsData);
             }, (err) => {
                 console.error("Firestore debts subscription error:", err);
@@ -185,27 +188,11 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
 
   const deleteSession = useCallback(async (sessionId: string) => {
     if(!db || !homeGameCode) throw new Error("Database not connected.");
-    const batch = writeBatch(db);
-
+    
     const sessionDocRef = doc(db, 'homeGames', homeGameCode, "sessions", sessionId);
-    batch.delete(sessionDocRef);
-
-    const debtsQuery = query(collection(db, 'homeGames', homeGameCode, "debts"), where("sessionId", "==", sessionId));
-    const debtsSnapshot = await getDocs(debtsQuery);
-    debtsSnapshot.forEach(debtDoc => {
-      batch.delete(debtDoc.ref);
-    });
-
-    await batch.commit();
+    await deleteDoc(sessionDocRef);
 
   }, [db, homeGameCode]);
-
-  const markSessionSettled = useCallback(async (sessionId: string) => {
-    if(!db || !homeGameCode) throw new Error("Database not connected.");
-    const sessionDocRef = doc(db, 'homeGames', homeGameCode, 'sessions', sessionId);
-    await updateDoc(sessionDocRef, { settled: true });
-  },[db, homeGameCode]);
-
 
   const value = {
     db,
@@ -221,7 +208,6 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     settleDebt,
     addSession,
     deleteSession,
-    markSessionSettled
   };
 
   return <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>;

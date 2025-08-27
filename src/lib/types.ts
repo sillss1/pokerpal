@@ -1,3 +1,4 @@
+
 import { type Timestamp } from "firebase/firestore";
 
 export interface Session {
@@ -9,7 +10,6 @@ export interface Session {
     [key:string]: number;
   };
   timestamp: Timestamp;
-  settled?: boolean;
   totalPot?: number;
 }
 
@@ -26,8 +26,7 @@ export interface PlayerStats {
 
 export interface Debt {
   id: string;
-  sessionId: string;
-  sessionDate: string;
+  description: string;
   fromPlayer: string;
   toPlayer: string;
   amount: number;

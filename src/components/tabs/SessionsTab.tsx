@@ -53,8 +53,7 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
-import { SessionSettlementDialog } from "../SessionSettlementDialog";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 
 
 const addPlayerSchema = z.object({
@@ -150,13 +149,13 @@ function PlayerManagement() {
                     <h4 className="font-semibold text-sm mb-2">Current Players ({playerNames.length}/10)</h4>
                     <div className="flex flex-wrap gap-2">
                         {playerNames.map(name => (
-                            <Badge key={name} variant="secondary" className="pl-3 pr-1 py-1 text-sm flex items-center gap-2">
+                            <div key={name} className="flex items-center gap-2 rounded-full border border-border bg-secondary text-secondary-foreground px-3 py-1 text-sm">
                                 {name}
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" disabled={isUpdating}>
+                                        <button disabled={isUpdating} className="flex items-center justify-center w-4 h-4 rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors">
                                             <Trash2 className="h-3 w-3" />
-                                        </Button>
+                                        </button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
@@ -171,7 +170,7 @@ function PlayerManagement() {
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                            </Badge>
+                            </div>
                         ))}
                         {playerNames.length === 0 && <p className="text-sm text-muted-foreground">No players configured.</p>}
                     </div>
@@ -234,7 +233,7 @@ export function SessionsTab() {
   const { playerNames, sessions, loading, addSession, deleteSession } = useFirebase();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
-
+  
   const formSchema = z.object({
       date: z.date(),
       location: z.string().min(1, "Location is required"),
@@ -278,12 +277,11 @@ export function SessionsTab() {
         location: values.location,
         addedBy: values.addedBy,
         players: playersResult,
-        settled: false,
         totalPot: totalPot,
       });
       toast({
         title: "Success",
-        description: "New session added successfully. You can now settle debts for it below.",
+        description: "New session added successfully.",
       });
       form.reset({
           ...playerNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {}),
@@ -308,7 +306,7 @@ export function SessionsTab() {
         await deleteSession(sessionId);
         toast({
             title: "Session Deleted",
-            description: "The session and any associated debts have been removed.",
+            description: "The session has been removed.",
         })
     } catch (error) {
         console.error("Error deleting document: ", error);
@@ -477,7 +475,7 @@ export function SessionsTab() {
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                             {playerNames.map(p => <TableCell key={p}><Skeleton className="h-4 w-16 ml-auto" /></TableCell>)}
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                            <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
+                            <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-8 mx-auto" /></TableCell>
                         </TableRow>
                     ))
                 )}
@@ -493,7 +491,6 @@ export function SessionsTab() {
                   <TableCell>{session.addedBy}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex gap-2 justify-center">
-                        <SessionSettlementDialog session={session} />
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -505,7 +502,7 @@ export function SessionsTab() {
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     This action cannot be undone. This will permanently delete the session from
-                                    {format(new Date(session.date), "PPP")} at {session.location} and all associated debts.
+                                    {format(new Date(session.date), "PPP")} at {session.location}.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

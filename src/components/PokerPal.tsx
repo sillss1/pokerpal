@@ -73,7 +73,7 @@ export function PokerPal() {
             <CardHeader>
               <CardTitle>Debt Management</CardTitle>
               <CardDescription>
-                Track and settle debts between players.
+                Manually record and settle debts between players.
               </CardDescription>
             </CardHeader>
             <CardContent>
