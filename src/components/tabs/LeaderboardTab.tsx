@@ -59,7 +59,7 @@ export function LeaderboardTab() {
           const result = data.result;
           stats[playerName].totalWinnings += result;
           stats[playerName].totalSessions += 1;
-          stats[playerName].totalBuyIns += data.buyIns;
+          stats[playerName].totalBuyIns += data.buyIns || 0; // Fallback for old sessions
 
           if (result > 0) {
             stats[playerName].sessionsWon += 1;
