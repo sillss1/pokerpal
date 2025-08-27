@@ -39,7 +39,7 @@ function JoinGameForm() {
     const { login, firebaseConfig } = useAuth();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
-
+    
     const form = useForm<JoinGameFormValues>({
         resolver: zodResolver(joinGameSchema),
         defaultValues: { homeGameCode: "" }
@@ -135,7 +135,6 @@ function CreateGameForm() {
                 throw new Error("A Home Game with this code already exists. Please choose a different code.");
             }
 
-            // Create the new home game document
             await setDoc(gameDocRef, {
                 playerNames: playerNames
             });
@@ -212,14 +211,16 @@ export function AccessPage() {
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
                 {!firebaseConfig ? (
-                    <Alert variant="destructive" className="m-6">
-                         <Server className="h-4 w-4" />
-                        <AlertTitle>Server Configuration Missing</AlertTitle>
-                        <AlertDescription>
-                            The application is not configured correctly. Please set up the Firebase
-                            environment variables on the server to continue.
-                        </AlertDescription>
-                    </Alert>
+                    <div className="p-6">
+                        <Alert variant="destructive">
+                            <Server className="h-4 w-4" />
+                            <AlertTitle>Server Configuration Missing</AlertTitle>
+                            <AlertDescription>
+                                The application is not configured correctly. Please set up the Firebase
+                                environment variables on the server to continue.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
                 ) : (
                     <Tabs defaultValue="join" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">

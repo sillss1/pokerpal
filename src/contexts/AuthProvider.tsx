@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   homeGameCode: string | null;
   firebaseConfig: FirebaseConfig | null;
-  configLoaded: boolean; // New state to track if config has been loaded
+  configLoaded: boolean; 
   login: (homeGameCode: string) => void;
   logout: () => void;
 }
@@ -24,10 +24,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [configLoaded, setConfigLoaded] = useState(false);
 
   useEffect(() => {
-    // This effect runs only on the client-side
+    // This effect runs only on the client-side, ensuring process.env is available.
     const config = getFirebaseConfig();
     setFirebaseConfig(config);
-    setConfigLoaded(true); // Mark config as loaded
+    setConfigLoaded(true); // Mark config as loaded after attempting to get it.
   }, []);
 
   const login = useCallback((code: string) => {
@@ -38,7 +38,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = useCallback(() => {
     setHomeGameCode(null);
     setIsAuthenticated(false);
-    // Use a timeout to ensure local storage is cleared before reload
     setTimeout(() => window.location.reload(), 100);
   }, [setHomeGameCode, setIsAuthenticated]);
 
