@@ -182,19 +182,16 @@ function PlayerManagement() {
 
 function SessionCorrector({ form }: { form: any }) {
     const playerNames = useFirebase().playerNames;
-    const watchedValues = form.watch(playerNames);
+    const watchedValues = form.watch(playerNames.map(name => `${name}.result`));
 
     const { totalWins, totalLosses } = useMemo(() => {
         let wins = 0;
         let losses = 0;
-
-        playerNames.forEach(name => {
-            const player = watchedValues[name];
-            if(player) {
-                const result = parseFloat(player.result) || 0;
-                if(result > 0) wins += result;
-                if(result < 0) losses += result;
-            }
+        
+        playerNames.forEach((name, index) => {
+            const result = parseFloat(watchedValues[index]) || 0;
+            if (result > 0) wins += result;
+            if (result < 0) losses += result;
         });
 
         return { totalWins: wins, totalLosses: losses };
@@ -203,8 +200,7 @@ function SessionCorrector({ form }: { form: any }) {
     const balance = totalWins + totalLosses;
     const isBalanced = Math.abs(balance) < 0.01;
 
-    // Only show if at least one result is not zero
-    if (Math.abs(balance) === 0 && totalWins === 0 && totalLosses === 0) {
+    if (totalWins === 0 && totalLosses === 0) {
         return null;
     }
 
@@ -263,30 +259,30 @@ export function SessionsTab() {
         path: [''] // General form error
     });
 
+    const getInitialFormValues = () => {
+        const initialPlayerValues = playerNames.reduce((acc, name) => {
+            acc[name] = { result: 0, buyIns: 1 };
+            return acc;
+        }, {} as any);
+    
+        return {
+            date: new Date(),
+            location: "",
+            addedBy: "",
+            buyInAmount: 10,
+            ...initialPlayerValues,
+        };
+    };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: new Date(),
-      location: "",
-      addedBy: "",
-      buyInAmount: 10,
-    },
+    defaultValues: getInitialFormValues(),
   });
 
   useEffect(() => {
-    const initialPlayerValues = playerNames.reduce((acc, name) => {
-        acc[name] = { result: 0, buyIns: 1 };
-        return acc;
-    }, {} as any);
-    form.reset({
-        date: new Date(),
-        location: "",
-        addedBy: "",
-        buyInAmount: 10,
-        ...initialPlayerValues,
-    });
+    form.reset(getInitialFormValues());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerNames]);
+  }, [playerNames, form]);
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
@@ -299,7 +295,7 @@ export function SessionsTab() {
         return acc;
     }, {} as Record<string, SessionPlayer>);
 
-    const totalBuyIns = Object.values(playersResult).reduce((sum, player) => sum + player.buyIns, 0);
+    const totalBuyIns = Object.values(playersResult).reduce((sum, player) => sum + (player.buyIns || 0), 0);
     const totalPot = values.buyInAmount * totalBuyIns;
 
     try {
