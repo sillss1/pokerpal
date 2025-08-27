@@ -13,14 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const dynamic = 'force-dynamic';
 
 function AppContent() {
-  const { isAuthenticated, homeGameCode } = useAuth();
-  const [isClient, setIsClient] = useState(false);
+  const { isAuthenticated, homeGameCode, configLoaded } = useAuth();
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
+  if (!configLoaded) {
     return (
       <div className="w-full max-w-2xl">
         <Skeleton className="h-[700px] w-full rounded-lg" />

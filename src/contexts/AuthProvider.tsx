@@ -10,6 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   homeGameCode: string | null;
   firebaseConfig: FirebaseConfig | null;
+  configLoaded: boolean; // New state to track if config has been loaded
   login: (homeGameCode: string) => void;
   logout: () => void;
 }
@@ -20,9 +21,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useLocalStorage<boolean>('pokerpal-auth', false);
   const [homeGameCode, setHomeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
   const [firebaseConfig, setFirebaseConfig] = useState<FirebaseConfig | null>(null);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   useEffect(() => {
-    setFirebaseConfig(getFirebaseConfig());
+    // This effect runs only on the client-side
+    const config = getFirebaseConfig();
+    setFirebaseConfig(config);
+    setConfigLoaded(true); // Mark config as loaded
   }, []);
 
   const login = useCallback((code: string) => {
@@ -37,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setTimeout(() => window.location.reload(), 100);
   }, [setHomeGameCode, setIsAuthenticated]);
 
-  const value = { isAuthenticated, login, logout, homeGameCode, firebaseConfig };
+  const value = { isAuthenticated, login, logout, homeGameCode, firebaseConfig, configLoaded };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
