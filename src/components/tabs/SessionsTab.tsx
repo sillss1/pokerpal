@@ -205,12 +205,12 @@ function SessionCorrector({ playerNames, watchedValues }: { playerNames: string[
     return (
         <Card className="mt-4">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Corrector</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Total & Corrector</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex gap-4">
                     <div className="text-center p-3 rounded-lg bg-gain/10">
-                        <p className="text-sm text-gain font-semibold">Total Wins</p>
+                        <p className="text-sm text-gain font-semibold">Total Pot (Wins)</p>
                         <p className="text-2xl font-bold text-gain">{totalWins.toFixed(2)}€</p>
                     </div>
                      <div className="text-center p-3 rounded-lg bg-loss/10">
