@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, deleteApp, FirebaseApp, getApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore, writeBatch } from 'firebase/firestore';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, getDoc, Firestore, writeBatch, setDoc } from 'firebase/firestore';
 import { FirebaseConfig, Session } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { getFirebaseConfig } from '@/lib/firebase-config';
@@ -25,10 +25,10 @@ const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined
 
 // Helper function to get the initialized Firebase app
 function getFirebaseApp(config: FirebaseConfig): FirebaseApp {
-    if (!getApps().length) {
-        return initializeApp(config);
+    if (getApps().length) {
+        return getApp();
     }
-    return getApp();
+    return initializeApp(config);
 }
 
 
@@ -41,6 +41,7 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   
   const [firebaseConfig] = useState<FirebaseConfig | null>(getFirebaseConfig());
+  const [storedHomeGameCode] = useLocalStorage<string | null>('homeGameCode', null);
   const [storedPlayerNames, setStoredPlayerNames] = useLocalStorage<string[] | null>('playerNames', null);
 
   useEffect(() => {
@@ -69,18 +70,21 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
 
             if (playerNamesSnap.exists()) {
                 currentPlayers = playerNamesSnap.data().names || [];
-            } else if (storedPlayerNames) {
-                // If config exists in local storage but not in DB, this might be the first run.
-                // Let's write the initial config to the DB.
+            } else if (storedPlayerNames && storedHomeGameCode) {
+                // If config exists in local storage but not in DB, this is the first run after creation.
+                // Write the initial config to the DB.
                 const batch = writeBatch(firestore);
+                const accessDocRef = doc(firestore, 'config', 'access');
+                
                 batch.set(playerNamesDocRef, { names: storedPlayerNames });
-                // We assume if players aren't set, access code isn't either.
-                // This could be improved, but is okay for this app's logic.
+                batch.set(accessDocRef, { code: storedHomeGameCode });
+                
                 await batch.commit();
                 currentPlayers = storedPlayerNames;
             }
             
             setPlayerNames(currentPlayers);
+            // Sync local storage with what's in DB (or what we just wrote)
             setStoredPlayerNames(currentPlayers);
             
 
@@ -118,7 +122,7 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     initialize();
 
     return () => unsubscribe();
-  }, [firebaseConfig, storedPlayerNames, setStoredPlayerNames]);
+  }, [firebaseConfig, storedPlayerNames, setStoredPlayerNames, storedHomeGameCode]);
 
   const updatePlayerNames = async (newPlayerNames: string[]) => {
     if(!db) {

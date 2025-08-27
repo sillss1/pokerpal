@@ -19,6 +19,8 @@ import { FirebaseConfig } from "@/lib/types";
 import { Trash2, PlusCircle, LogIn, Server } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getFirebaseConfig } from "@/lib/firebase-config";
+import { useFirebase } from "@/contexts/FirebaseProvider";
+import { FirebaseProvider } from "@/contexts/FirebaseProvider";
 
 // Schemas
 const joinGameSchema = z.object({
@@ -60,7 +62,6 @@ function JoinGameForm() {
 
         let tempApp: FirebaseApp | undefined;
         try {
-            // Use a temporary app for validation to not interfere with the main app instance
             tempApp = initializeApp(firebaseConfig, `validation-join-${Date.now()}`);
             const db = getFirestore(tempApp);
             
@@ -136,7 +137,6 @@ function CreateGameForm() {
         const playerNames = values.players.map(p => p.name);
         let tempApp: FirebaseApp | undefined;
         try {
-            // Use a temporary app for validation to not interfere with the main app instance
             tempApp = initializeApp(firebaseConfig, `validation-create-${Date.now()}`);
             const db = getFirestore(tempApp);
 
@@ -147,12 +147,8 @@ function CreateGameForm() {
                 throw new Error("A Home Game has already been configured for this Firebase project.");
             }
 
-            const batch = writeBatch(db);
-            batch.set(accessDocRef, { code: values.homeGameCode });
-            const playerNamesDocRef = doc(db, 'config', 'playerNames');
-            batch.set(playerNamesDocRef, { names: playerNames });
-            await batch.commit();
-
+            // The actual write will be handled by the FirebaseProvider on the next screen
+            // We just need to set it up in auth/local storage
             login(values.homeGameCode, playerNames);
             toast({ title: "Home Game Created!", description: "Successfully created and joined your new Home Game." });
 
@@ -240,10 +236,10 @@ export function AccessPage() {
                             <TabsTrigger value="create"><PlusCircle className="mr-2"/>Create Game</TabsTrigger>
                         </TabsList>
                         <TabsContent value="join" className="p-6">
-                            <JoinGameForm />
+                           <FirebaseProvider><JoinGameForm /></FirebaseProvider>
                         </TabsContent>
                         <TabsContent value="create" className="p-6">
-                            <CreateGameForm />
+                           <FirebaseProvider><CreateGameForm /></FirebaseProvider>
                         </TabsContent>
                     </Tabs>
                 )}
