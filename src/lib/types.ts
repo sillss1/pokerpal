@@ -16,7 +16,7 @@ export interface Session {
   location: string;
   addedBy: string;
   players: {
-    [key: string]: number;
+    [key:string]: number;
   };
   timestamp: Timestamp;
 }

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { initializeApp, FirebaseApp, deleteApp } from "firebase/app";
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
 import { FirebaseConfig } from "@/lib/types";
+import { Trash2, PlusCircle } from "lucide-react";
 
 const firebaseConfigSchema = z.object({
   apiKey: z.string().min(1, "API Key is required"),
@@ -25,16 +26,11 @@ const firebaseConfigSchema = z.object({
   appId: z.string().min(1, "App ID is required"),
 });
 
-const playerNamesSchema = z.object({
-    player1: z.string().min(1, "Player name is required"),
-    player2: z.string().min(1, "Player name is required"),
-    player3: z.string().min(1, "Player name is required"),
-    player4: z.string().min(1, "Player name is required"),
-    player5: z.string().min(1, "Player name is required"),
-});
-
-const formSchema = firebaseConfigSchema.merge(playerNamesSchema).extend({
-  groupCode: z.string().min(1, "Group Code is required"),
+const formSchema = firebaseConfigSchema.extend({
+  homeGameCode: z.string().min(1, "Home Game Code is required"),
+  players: z.array(z.object({ name: z.string().min(1, "Player name is required") }))
+    .min(1, "At least one player is required.")
+    .max(10, "You can have a maximum of 10 players."),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -43,6 +39,7 @@ export function AccessPage() {
   const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -53,13 +50,14 @@ export function AccessPage() {
       storageBucket: "",
       messagingSenderId: "",
       appId: "",
-      player1: "",
-      player2: "",
-      player3: "",
-      player4: "",
-      player5: "",
-      groupCode: "",
+      homeGameCode: "",
+      players: [{ name: "" }],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "players",
   });
 
   async function onSubmit(values: FormValues) {
@@ -72,7 +70,7 @@ export function AccessPage() {
       messagingSenderId: values.messagingSenderId,
       appId: values.appId,
     };
-    const playerNames = [values.player1, values.player2, values.player3, values.player4, values.player5];
+    const playerNames = values.players.map(p => p.name);
 
     let tempApp: FirebaseApp | undefined;
     try {
@@ -82,34 +80,41 @@ export function AccessPage() {
 
       const accessDocRef = doc(db, 'config', 'access');
       const accessDocSnap = await getDoc(accessDocRef);
-
+      
       if (accessDocSnap.exists()) {
-        if (accessDocSnap.data().code !== values.groupCode) {
-          throw new Error("Invalid Group Code.");
+        // Joining an existing game
+        setIsJoining(true);
+        if (accessDocSnap.data().code !== values.homeGameCode) {
+          throw new Error("Invalid Home Game Code.");
         }
         const playerNamesDocRef = doc(db, 'config', 'playerNames');
         const playerNamesSnap = await getDoc(playerNamesDocRef);
-        const dbPlayerNames = playerNamesSnap.exists() ? playerNamesSnap.data().names : playerNames;
+        const dbPlayerNames = playerNamesSnap.exists() ? playerNamesSnap.data().names : [];
         login(config, dbPlayerNames);
+        toast({
+            title: "Success!",
+            description: "Successfully joined the Home Game.",
+        });
       } else {
+        // Creating a new game
+        setIsJoining(false);
         const batch = writeBatch(db);
-        batch.set(accessDocRef, { code: values.groupCode });
+        batch.set(accessDocRef, { code: values.homeGameCode });
         const playerNamesDocRef = doc(db, 'config', 'playerNames');
         batch.set(playerNamesDocRef, { names: playerNames });
         await batch.commit();
         login(config, playerNames);
+        toast({
+            title: "Home Game Created!",
+            description: "Successfully created and joined your new Home Game.",
+        });
       }
-      
-      toast({
-        title: "Success!",
-        description: "Successfully connected to your poker group.",
-      });
 
     } catch (error: any) {
       console.error(error);
       let errorMessage = "An error occurred during setup.";
-      if (error.message.includes("Invalid Group Code")) {
-        errorMessage = "The group code you entered is incorrect.";
+      if (error.message.includes("Invalid Home Game Code")) {
+        errorMessage = "The Home Game code you entered is incorrect.";
       } else if (error.code) {
         errorMessage = "Firebase connection failed. Please check your credentials and Firestore rules.";
       }
@@ -139,10 +144,10 @@ export function AccessPage() {
       </CardHeader>
       <CardContent className="space-y-6 p-6">
         <div>
-            <h3 className="text-lg font-medium text-center">Group Access</h3>
+            <h3 className="text-lg font-medium text-center">Create or Join a Home Game</h3>
             <p className="text-sm text-muted-foreground text-center mt-1">
-                Enter your group's Firebase credentials and code to get started.
-                If you're the first, your settings will create the group.
+                Enter your Firebase credentials and a code for your game.
+                If the code is new, you'll create a game. If it exists, you'll join it.
             </p>
         </div>
         <Form {...form}>
@@ -172,22 +177,46 @@ export function AccessPage() {
             </div>
 
             <div>
-              <h3 className="text-base font-semibold mb-4">Player & Group Details</h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                      <FormField key={i} control={form.control} name={`player${i + 1}` as keyof FormValues} render={({ field }) => (
-                          <FormItem><FormLabel>Player {i+1}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                  ))}
-                  <FormField control={form.control} name="groupCode" render={({ field }) => (
-                      <FormItem><FormLabel>Group Code</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
+              <h3 className="text-base font-semibold mb-4">Home Game Details</h3>
+               <div className="space-y-4">
+                 <FormField control={form.control} name="homeGameCode" render={({ field }) => (
+                    <FormItem><FormLabel>Home Game Code</FormLabel><FormControl><Input type="password" placeholder="Choose or enter a code" {...field} /></FormControl><FormMessage /></FormItem>
+                 )} />
+
+                <div>
+                    <FormLabel>Players</FormLabel>
+                    <FormDescription className="mb-2">Define the players for your game. Required only when creating a new game.</FormDescription>
+                    <div className="space-y-2">
+                        {fields.map((field, index) => (
+                          <div key={field.id} className="flex items-center gap-2">
+                            <FormField
+                                control={form.control}
+                                name={`players.${index}.name`}
+                                render={({ field }) => (
+                                <FormItem className="flex-grow">
+                                    <FormControl>
+                                    <Input placeholder={`Player ${index + 1} Name`} {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
+                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                     <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ name: "" })} disabled={fields.length >= 10}>
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Player
+                    </Button>
+                    <FormMessage>{form.formState.errors.players?.message}</FormMessage>
+                </div>
               </div>
-              <FormDescription className="mt-2">Player names are set once by the first user. Subsequent users must enter the correct group code to join.</FormDescription>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Connecting..." : "Connect & Enter"}
+              {isLoading ? "Connecting..." : "Create or Join Game"}
             </Button>
           </form>
         </Form>
