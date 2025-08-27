@@ -270,19 +270,11 @@ export function SessionsTab() {
         return acc;
     }, {} as Record<string, number>);
 
-    // Calculate total pot based on the new logic
-    const totalPot = Object.values(playersResult).reduce((sum, result) => {
-        if (result < 0) {
-            // For losers, calculate buy-ins needed to cover the loss
-            const buyIns = Math.ceil(Math.abs(result) / 10) * 10;
-            // A player must have at least one 10€ buy-in, even if loss is < 10
-            return sum + Math.max(10, buyIns);
-        } else {
-            // For winners, add their winnings to the pot (this represents losers' buy-ins)
-            return sum + result;
-        }
-    }, 0);
-    
+    // Correctly calculate total pot by summing up all the winnings (positive results).
+    // This represents the total amount of money that losers lost.
+    const totalPot = Object.values(playersResult)
+      .filter(result => result > 0)
+      .reduce((sum, win) => sum + win, 0);
 
     try {
       await addSession({
