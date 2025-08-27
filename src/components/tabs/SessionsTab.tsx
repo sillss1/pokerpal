@@ -271,7 +271,7 @@ export function SessionsTab() {
     }, {} as Record<string, number>);
 
     // Correctly calculate total pot by summing up all the winnings (positive results).
-    // This represents the total amount of money that losers lost.
+    // This represents the total amount of money that losers lost and winners won.
     const totalPot = Object.values(playersResult)
       .filter(result => result > 0)
       .reduce((sum, win) => sum + win, 0);
