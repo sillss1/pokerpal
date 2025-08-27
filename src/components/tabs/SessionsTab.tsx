@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -157,9 +158,25 @@ function PlayerManagement() {
                         {playerNames.map(name => (
                             <Badge key={name} variant="secondary" className="pl-3 pr-1 py-1 text-sm flex items-center gap-2">
                                 {name}
-                                <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" onClick={() => handleRemovePlayer(name)} disabled={isUpdating}>
-                                    <Trash2 className="h-3 w-3" />
-                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" disabled={isUpdating}>
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will remove {name} from the game. They will still appear in past sessions, but you won't be able to add them to new ones. Are you sure?
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRemovePlayer(name)} className="bg-destructive hover:bg-destructive/90">Remove Player</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </Badge>
                         ))}
                         {playerNames.length === 0 && <p className="text-sm text-muted-foreground">No players configured.</p>}
@@ -198,7 +215,7 @@ export function SessionsTab() {
       date: new Date(),
       location: "",
       addedBy: "",
-      ...playerNames.reduce((acc, name) => ({ ...acc, [name]: "" }), {}),
+      ...playerNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {}),
     },
   });
 
@@ -223,10 +240,10 @@ export function SessionsTab() {
         description: "New session added successfully.",
       });
       form.reset({
-          ...playerNames.reduce((acc, name) => ({ ...acc, [name]: "" }), {}),
-          date: values.date, // Keep date
-          location: values.location, // Keep location
-          addedBy: values.addedBy, // Keep adder
+          ...playerNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {}),
+          date: new Date(),
+          location: "",
+          addedBy: "",
       });
     } catch (error) {
       console.error("Error adding document: ", error);
@@ -465,3 +482,5 @@ export function SessionsTab() {
     </div>
   );
 }
+
+    
