@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, deleteApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, setDoc, getDoc, Firestore, writeBatch } from 'firebase/firestore';
+import { getFirestore, onSnapshot, collection, doc, setDoc, getDoc, Firestore, writeBatch, updateDoc } from 'firebase/firestore';
 import { FirebaseConfig, Session } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 
@@ -17,7 +17,7 @@ interface FirebaseContextType {
   error: string | null;
   connectionStatus: ConnectionStatus;
   firebaseConfig: FirebaseConfig | null;
-  setConfig: (config: FirebaseConfig, newPlayerNames: string[]) => Promise<void>;
+  updatePlayerNames: (newPlayerNames: string[]) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -98,21 +98,15 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     initialize(firebaseConfig);
   }, [firebaseConfig, initialize]);
 
-  const setConfig = async (config: FirebaseConfig, newPlayerNames: string[]) => {
+  const updatePlayerNames = async (newPlayerNames: string[]) => {
     if(!db) {
-        setFirebaseConfig(config);
-        setStoredPlayerNames(newPlayerNames);
-        // initialize will be called by useEffect
+        setError("Not connected to Firebase.");
         return;
     }
 
-    const batch = writeBatch(db);
     const playerNamesDocRef = doc(db, 'config', 'playerNames');
-    batch.set(playerNamesDocRef, { names: newPlayerNames });
-    
-    await batch.commit();
+    await updateDoc(playerNamesDocRef, { names: newPlayerNames });
 
-    setFirebaseConfig(config);
     setPlayerNames(newPlayerNames);
     setStoredPlayerNames(newPlayerNames);
   };
@@ -125,7 +119,7 @@ export const FirebaseProvider = ({ children }: { children: ReactNode }) => {
     error,
     connectionStatus,
     firebaseConfig,
-    setConfig,
+    updatePlayerNames,
   };
 
   return <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>;
@@ -138,3 +132,5 @@ export const useFirebase = (): FirebaseContextType => {
   }
   return context;
 };
+
+    
