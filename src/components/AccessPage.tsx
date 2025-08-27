@@ -40,6 +40,11 @@ function JoinGameForm() {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
+    const form = useForm<JoinGameFormValues>({
+        resolver: zodResolver(joinGameSchema),
+        defaultValues: { homeGameCode: "" }
+    });
+
     async function onSubmit(values: JoinGameFormValues) {
         setIsLoading(true);
         if (!firebaseConfig) {
