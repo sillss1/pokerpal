@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import {
   collection,
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -219,6 +219,14 @@ export function SessionsTab() {
     },
   });
 
+  const watchedPlayerValues = form.watch(playerNames);
+  const sessionTotal = useMemo(() => {
+    return playerNames.reduce((sum, name, index) => {
+        const value = parseFloat(watchedPlayerValues[index] as any) || 0;
+        return sum + value;
+    }, 0);
+  }, [watchedPlayerValues, playerNames]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!db || !homeGameCode) return;
     setIsAdding(true);
@@ -371,8 +379,20 @@ export function SessionsTab() {
             </div>
 
             <div>
-              <FormLabel className="text-base font-medium">Player Results (€)</FormLabel>
-              <FormDescription>Enter positive values for wins and negative for losses. The total must sum to 0.</FormDescription>
+              <div className="flex justify-between items-center mb-1">
+                <div>
+                    <FormLabel className="text-base font-medium">Player Results (€)</FormLabel>
+                    <FormDescription>Enter positive values for wins and negative for losses.</FormDescription>
+                </div>
+                <div className={cn(
+                    "flex items-center gap-2 font-bold p-2 rounded-md",
+                    Math.abs(sessionTotal) < 0.01 ? "text-gain bg-gain/10" : "text-destructive bg-destructive/10"
+                )}>
+                    {Math.abs(sessionTotal) < 0.01 ? <CheckCircle /> : <AlertCircle />}
+                    <span>Session Total: {sessionTotal.toFixed(2)}€</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
                 {playerNames.map((name) => (
                   <FormField
@@ -383,7 +403,7 @@ export function SessionsTab() {
                       <FormItem>
                         <FormLabel>{name}</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? 0} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -482,5 +502,3 @@ export function SessionsTab() {
     </div>
   );
 }
-
-    
