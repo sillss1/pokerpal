@@ -15,7 +15,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Session } from "@/lib/types";
+import { Session, SessionPlayer } from "@/lib/types";
 import { HandCoins, ArrowRight, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 
@@ -27,20 +27,20 @@ interface SettlementTransaction {
 
 // This is a simplified debt settlement algorithm.
 // It takes all losers and makes them pay all winners proportionally.
-function calculateSettlements(players: {[key: string]: number}): SettlementTransaction[] {
-    const winners = Object.entries(players).filter(([, amount]) => amount > 0).sort((a,b) => b[1] - a[1]);
-    const losers = Object.entries(players).filter(([, amount]) => amount < 0).sort((a,b) => a[1] - b[1]);
+function calculateSettlements(players: {[key: string]: SessionPlayer}): SettlementTransaction[] {
+    const winners = Object.entries(players).filter(([, data]) => data.result > 0).map(([name, data]) => [name, data.result]).sort((a, b) => b[1] as number - (a[1] as number));
+    const losers = Object.entries(players).filter(([, data]) => data.result < 0).map(([name, data]) => [name, data.result]).sort((a, b) => a[1] as number - (b[1] as number));
 
     const transactions: SettlementTransaction[] = [];
     let winnerIndex = 0;
     let loserIndex = 0;
 
-    const winnerAmounts = winners.map(w => w[1]);
-    const loserAmounts = losers.map(l => Math.abs(l[1]));
+    const winnerAmounts = winners.map(w => w[1] as number);
+    const loserAmounts = losers.map(l => Math.abs(l[1] as number));
 
     while(winnerIndex < winners.length && loserIndex < losers.length) {
-        const winner = winners[winnerIndex][0];
-        const loser = losers[loserIndex][0];
+        const winner = winners[winnerIndex][0] as string;
+        const loser = losers[loserIndex][0] as string;
 
         const amountToSettle = Math.min(winnerAmounts[winnerIndex], loserAmounts[loserIndex]);
 

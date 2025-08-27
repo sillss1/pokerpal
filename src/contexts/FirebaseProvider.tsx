@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, onSnapshot, collection, doc, updateDoc, Firestore, addDoc, Timestamp, writeBatch, deleteDoc, query, where, getDocs } from 'firebase/firestore';
-import { FirebaseConfig, Session, Debt } from '@/lib/types';
+import { FirebaseConfig, Session, Debt, SessionPlayer } from '@/lib/types';
 import { getFirebaseConfig } from '@/lib/firebase-config';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -253,5 +253,3 @@ export const useFirebase = (): FirebaseContextType => {
   }
   return context;
 };
-
-    

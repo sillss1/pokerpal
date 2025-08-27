@@ -1,13 +1,19 @@
 
 import { type Timestamp } from "firebase/firestore";
 
+export interface SessionPlayer {
+  result: number;
+  buyIns: number;
+}
+
 export interface Session {
   id: string;
   date: string;
   location: string;
   addedBy: string;
+  buyInAmount: number;
   players: {
-    [key:string]: number;
+    [key:string]: SessionPlayer;
   };
   timestamp: Timestamp;
   totalPot?: number;
@@ -23,6 +29,8 @@ export interface PlayerStats {
     biggestWin: number;
     biggestLoss: number;
     totalSessions: number;
+    totalBuyIns: number;
+    averageBuyIns: number;
 }
 
 export interface Debt {

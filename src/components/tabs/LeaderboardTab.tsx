@@ -5,7 +5,7 @@ import React, { useMemo } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PlayerStats, Session } from "@/lib/types";
-import { Crown, TrendingUp, TrendingDown, Swords, Percent, Target, Trophy } from "lucide-react";
+import { Crown, TrendingUp, TrendingDown, Swords, Percent, Target, Trophy, Wallet } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
 import { format } from "date-fns";
 
@@ -47,15 +47,20 @@ export function LeaderboardTab() {
         biggestWin: 0,
         biggestLoss: 0,
         totalSessions: 0,
+        totalBuyIns: 0,
+        averageBuyIns: 0,
       };
       return acc;
     }, {} as { [key: string]: PlayerStats });
 
     sessions.forEach((session: Session) => {
-      Object.entries(session.players).forEach(([playerName, result]) => {
+      Object.entries(session.players).forEach(([playerName, data]) => {
         if (stats[playerName]) {
+          const result = data.result;
           stats[playerName].totalWinnings += result;
           stats[playerName].totalSessions += 1;
+          stats[playerName].totalBuyIns += data.buyIns;
+
           if (result > 0) {
             stats[playerName].sessionsWon += 1;
             if (result > stats[playerName].biggestWin) {
@@ -74,6 +79,7 @@ export function LeaderboardTab() {
     Object.values(stats).forEach(player => {
         if(player.totalSessions > 0) {
             player.winRate = Math.round((player.sessionsWon / player.totalSessions) * 100);
+            player.averageBuyIns = parseFloat((player.totalBuyIns / player.totalSessions).toFixed(1));
         }
     });
 
@@ -135,6 +141,7 @@ export function LeaderboardTab() {
                   <CardContent className="space-y-3 pt-2">
                     <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
                     <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
+                    <StatCard icon={Wallet} label="Avg. Buy-ins / Session" value={player.averageBuyIns} />
                     <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
                     <StatCard icon={TrendingDown} label="Sessions Lost" value={player.sessionsLost} />
                     <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />

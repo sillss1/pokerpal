@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -26,11 +26,11 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, Users, UserPlus, AlertCircle, CheckCircle, Scale, MapPin, User } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Users, UserPlus, AlertCircle, CheckCircle, Scale, MapPin, User, MinusCircle, DollarSign, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Session } from "@/lib/types";
+import { Session, SessionPlayer } from "@/lib/types";
 import {
   Table,
   TableBody,
@@ -180,37 +180,49 @@ function PlayerManagement() {
     )
 }
 
-function SessionCorrector({ playerNames, watchedValues }: { playerNames: string[], watchedValues: any[]}) {
-    const { totalWins, totalLosses } = useMemo(() => {
-        const results = playerNames
-            .map((_, index) => parseFloat(watchedValues[index] as any) || 0);
-        
-        const wins = results
-            .filter(v => v > 0)
-            .reduce((sum, v) => sum + v, 0);
-        
-        const losses = results
-            .filter(v => v < 0)
-            .reduce((sum, v) => sum + v, 0);
-            
-        return { totalWins: wins, totalLosses: losses };
+function SessionCorrector({ form }: { form: any }) {
+    const playerNames = useFirebase().playerNames;
+    const watchedValues = form.watch(playerNames);
+    const buyInAmount = form.watch('buyInAmount') || 0;
+
+    const { totalWins, totalLosses, totalBuyIns } = useMemo(() => {
+        let wins = 0;
+        let losses = 0;
+        let buyIns = 0;
+
+        playerNames.forEach(name => {
+            const player = watchedValues[name];
+            if(player) {
+                const result = parseFloat(player.result) || 0;
+                if(result > 0) wins += result;
+                if(result < 0) losses += result;
+                buyIns += parseInt(player.buyIns, 10) || 0;
+            }
+        });
+
+        return { totalWins: wins, totalLosses: losses, totalBuyIns: buyIns };
     }, [watchedValues, playerNames]);
 
+    const totalPot = totalBuyIns * buyInAmount;
     const isBalanced = Math.abs(totalWins + totalLosses) < 0.01;
 
-    if (totalWins === 0 && totalLosses === 0) {
-        return null; // Don't show if all fields are empty/zero
+    if (totalBuyIns === 0) {
+        return null; // Don't show if no buy-ins are entered
     }
 
     return (
         <Card className="mt-4">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Total & Corrector</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Summary & Balance</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
+                     <div className="text-center p-3 rounded-lg bg-primary/10">
+                        <p className="text-sm text-primary font-semibold">Total Pot</p>
+                        <p className="text-2xl font-bold text-primary">{totalPot.toFixed(2)}€</p>
+                    </div>
                     <div className="text-center p-3 rounded-lg bg-gain/10">
-                        <p className="text-sm text-gain font-semibold">Total Pot (Wins)</p>
+                        <p className="text-sm text-gain font-semibold">Total Wins</p>
                         <p className="text-2xl font-bold text-gain">{totalWins.toFixed(2)}€</p>
                     </div>
                      <div className="text-center p-3 rounded-lg bg-loss/10">
@@ -235,16 +247,22 @@ export function SessionsTab() {
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
   
+  const playerSchema = z.object({
+    result: z.coerce.number().default(0),
+    buyIns: z.coerce.number().int().min(1, "Each player must have at least 1 buy-in.").default(1),
+  });
+
   const formSchema = z.object({
       date: z.date(),
-      location: z.string().min(1, "Location is required"),
-      addedBy: z.string({required_error: "Please select who added this session."}).min(1, "Please select who added this session"),
+      location: z.string().min(1, "Location is required."),
+      addedBy: z.string({required_error: "Please select who added this session."}).min(1, "Please select who added this session."),
+      buyInAmount: z.coerce.number().positive("Buy-in amount must be a positive number.").default(10),
       ...playerNames.reduce((acc, name) => {
-        acc[name] = z.coerce.number().default(0);
+        acc[name] = playerSchema;
         return acc;
       }, {} as Record<string, z.ZodType<any, any>>),
     }).refine(data => {
-        const total = playerNames.reduce((sum, name) => sum + (data[name] || 0), 0);
+        const total = playerNames.reduce((sum, name) => sum + (data[name]?.result || 0), 0);
         return Math.abs(total) < 0.01; // Allow for floating point inaccuracies
     }, {
         message: "The sum of all player results must be 0.",
@@ -257,30 +275,44 @@ export function SessionsTab() {
       date: new Date(),
       location: "",
       addedBy: "",
-      ...playerNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {}),
+      buyInAmount: 10,
     },
   });
 
-  const watchedPlayerValues = form.watch(playerNames);
-
+  useEffect(() => {
+    const initialPlayerValues = playerNames.reduce((acc, name) => {
+        acc[name] = { result: 0, buyIns: 1 };
+        return acc;
+    }, {} as any);
+    form.reset({
+        date: new Date(),
+        location: "",
+        addedBy: "",
+        buyInAmount: 10,
+        ...initialPlayerValues,
+    });
+  }, [playerNames, form.reset]);
+  
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
-    const playersResult = playerNames.reduce((acc, name) => {
-        acc[name] = values[name] as number;
+    
+    const playersResult: Record<string, SessionPlayer> = playerNames.reduce((acc, name) => {
+        acc[name] = {
+            result: values[name].result as number,
+            buyIns: values[name].buyIns as number
+        };
         return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, SessionPlayer>);
 
-    // Correctly calculate total pot by summing up all the winnings (positive results).
-    // This represents the total amount of money that losers lost and winners won.
-    const totalPot = Object.values(playersResult)
-      .filter(result => result > 0)
-      .reduce((sum, win) => sum + win, 0);
+    const totalBuyIns = Object.values(playersResult).reduce((sum, player) => sum + player.buyIns, 0);
+    const totalPot = values.buyInAmount * totalBuyIns;
 
     try {
       await addSession({
         date: format(values.date, "yyyy-MM-dd"),
         location: values.location,
         addedBy: values.addedBy,
+        buyInAmount: values.buyInAmount,
         players: playersResult,
         totalPot: totalPot,
         settled: false,
@@ -289,12 +321,7 @@ export function SessionsTab() {
         title: "Success",
         description: "New session added successfully.",
       });
-      form.reset({
-          ...playerNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {}),
-          date: new Date(),
-          location: "",
-          addedBy: "",
-      });
+      form.reset();
     } catch (error) {
       console.error("Error adding document: ", error);
       toast({
@@ -335,114 +362,56 @@ export function SessionsTab() {
         {playerNames.length > 0 ? (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <FormField control={form.control} name="date" render={({ field }) => (
+                  <FormItem className="flex flex-col"><FormLabel>Date</FormLabel><Popover><PopoverTrigger asChild><FormControl>
+                          <Button variant={"outline"} className={cn("pl-3 text-left font-normal",!field.value && "text-muted-foreground")}>
+                            {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
+                          </Button></FormControl></PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., John's House" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="addedBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-1"><User className="w-4 h-4" />Added by</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a player" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {playerNames.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus/>
+                      </PopoverContent></Popover><FormMessage />
+                  </FormItem>)}/>
+              <FormField control={form.control} name="location" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Location</FormLabel><FormControl><Input placeholder="e.g., John's House" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="addedBy" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><User className="w-4 h-4" />Added by</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger></FormControl><SelectContent>{playerNames.map((name) => (<SelectItem key={name} value={name}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)}/>
+              <FormField control={form.control} name="buyInAmount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4" />Buy-in Amount (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>)}/>
             </div>
 
             <div>
               <div className="flex justify-between items-center mb-1">
                 <div>
-                    <FormLabel className="text-base font-medium">Player Results (€)</FormLabel>
-                    <FormDescription>Enter positive values for wins and negative for losses.</FormDescription>
+                    <FormLabel className="text-base font-medium">Player Details</FormLabel>
+                    <FormDescription>Enter results (win/loss) and number of buy-ins for each player.</FormDescription>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
-                {playerNames.map((name, index) => (
-                  <FormField
-                    key={name}
-                    control={form.control}
-                    name={name as any}
-                    render={({ field }) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-6 mt-4">
+                {playerNames.map((name) => (
+                  <div key={name} className="p-4 border rounded-lg bg-muted/30 space-y-3">
+                    <h4 className="font-semibold text-center">{name}</h4>
+                     <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{name}</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} value={field.value ?? ''} />
-                        </FormControl>
+                        <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>)}/>
+                    <FormField control={form.control} name={`${name}.buyIns`} render={({ field }) => (
+                      <FormItem>
+                         <FormLabel className="flex items-center gap-1.5 text-sm"><Wallet className="w-4 h-4" />Buy-ins</FormLabel>
+                         <FormControl>
+                            <div className="flex items-center gap-2">
+                                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => form.setValue(`${name}.buyIns`, Math.max(1, (field.value || 1) - 1))}>
+                                    <MinusCircle className="h-4 w-4"/>
+                                </Button>
+                                <Input className="h-8 text-center" type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} value={field.value ?? ''} />
+                                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => form.setValue(`${name}.buyIns`, (field.value || 0) + 1)}>
+                                    <PlusCircle className="h-4 w-4"/>
+                                </Button>
+                            </div>
+                         </FormControl>
+                        <FormMessage />
+                      </FormItem>)}/>
+                  </div>
                 ))}
               </div>
             </div>
@@ -451,7 +420,7 @@ export function SessionsTab() {
               {isAdding ? "Adding..." : "Add Session"}
             </Button>
           </form>
-          <SessionCorrector playerNames={playerNames} watchedValues={watchedPlayerValues} />
+          <SessionCorrector form={form} />
         </Form>
         ) : (
           <p className="text-muted-foreground">Please add players in the Player Management section below to start logging sessions.</p>
@@ -466,6 +435,8 @@ export function SessionsTab() {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead className="text-right">Buy-in</TableHead>
+                <TableHead className="text-right">Total Pot</TableHead>
                 {playerNames.map((name) => (
                   <TableHead key={name} className="text-right">{name}</TableHead>
                 ))}
@@ -479,6 +450,8 @@ export function SessionsTab() {
                         <TableRow key={i}>
                             <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
                             {playerNames.map(p => <TableCell key={p}><Skeleton className="h-4 w-16 ml-auto" /></TableCell>)}
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                             <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-8 mx-auto" /></TableCell>
@@ -489,9 +462,12 @@ export function SessionsTab() {
                 <TableRow key={session.id}>
                   <TableCell>{format(new Date(session.date), "dd MMM yyyy")}</TableCell>
                   <TableCell>{session.location}</TableCell>
+                  <TableCell className="text-right">{session.buyInAmount.toFixed(2)}€</TableCell>
+                  <TableCell className="text-right font-semibold">{(session.totalPot || 0).toFixed(2)}€</TableCell>
                   {playerNames.map((name) => (
-                    <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name] ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
-                      {(session.players[name] ?? 0).toFixed(2)}€
+                    <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name]?.result ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
+                      {(session.players[name]?.result ?? 0).toFixed(2)}€ 
+                      <span className="text-xs text-muted-foreground ml-1">({session.players[name]?.buyIns || 0} BI)</span>
                     </TableCell>
                   ))}
                   <TableCell>{session.addedBy}</TableCell>
@@ -524,7 +500,7 @@ export function SessionsTab() {
               ))}
               {!loading && sessions.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={playerNames.length + 4} className="h-24 text-center">
+                    <TableCell colSpan={playerNames.length + 6} className="h-24 text-center">
                         No sessions found. Add one to get started!
                     </TableCell>
                 </TableRow>
