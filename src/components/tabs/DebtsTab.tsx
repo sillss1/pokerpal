@@ -1,29 +1,8 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
-import { useForm, Controller } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Debt } from "@/lib/types";
 import {
@@ -48,54 +27,13 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { HandCoins, ArrowRight, CheckCircle, Clock } from "lucide-react";
+import { HandCoins, ArrowRight, CheckCircle, Info } from "lucide-react";
 import { format } from "date-fns";
+import { Button } from "../ui/button";
 
 export function DebtsTab() {
-  const { playerNames, debts, loading, addDebt, settleDebt } = useFirebase();
+  const { debts, loading, settleDebt } = useFirebase();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const availablePlayers = playerNames || [];
-
-  const addDebtSchema = z.object({
-    fromPlayer: z.string().min(1, "Please select the debtor."),
-    toPlayer: z.string().min(1, "Please select who is owed."),
-    amount: z.coerce.number().positive("Amount must be a positive number."),
-  }).refine(data => data.fromPlayer !== data.toPlayer, {
-    message: "A player cannot owe money to themselves.",
-    path: ["toPlayer"],
-  });
-
-  const form = useForm<z.infer<typeof addDebtSchema>>({
-    resolver: zodResolver(addDebtSchema),
-    defaultValues: {
-      fromPlayer: "",
-      toPlayer: "",
-      amount: "" as any,
-    },
-  });
-
-  async function onAddDebtSubmit(values: z.infer<typeof addDebtSchema>) {
-    setIsSubmitting(true);
-    try {
-      await addDebt(values.fromPlayer, values.toPlayer, values.amount);
-      toast({
-        title: "Success",
-        description: `Debt of ${values.amount}€ from ${values.fromPlayer} to ${values.toPlayer} has been recorded.`,
-      });
-      form.reset();
-    } catch (error) {
-      console.error("Error adding debt: ", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to record debt. Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
   
   async function handleSettleDebt(debtId: string) {
     try {
@@ -119,78 +57,21 @@ export function DebtsTab() {
 
   return (
     <div className="space-y-8">
-       <Card>
+        <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2"><HandCoins />Record a New Debt</CardTitle>
-                <CardDescription>Register a payment owed between two players. This will not affect the leaderboard.</CardDescription>
+                <CardTitle className="flex items-center gap-2"><HandCoins />Debt Overview</CardTitle>
+                <CardDescription>
+                    This tab shows all outstanding and settled debts from past poker sessions.
+                    Debts are created from the "Sessions" tab after a game is finished.
+                </CardDescription>
             </CardHeader>
             <CardContent>
-               {availablePlayers.length > 1 ? (
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onAddDebtSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="fromPlayer"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Who Owes?</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {availablePlayers.map((name) => (
-                                        <SelectItem key={`from-${name}`} value={name}>{name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="toPlayer"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>To Whom?</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {availablePlayers.map((name) => (
-                                        <SelectItem key={`to-${name}`} value={name}>{name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="amount"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Amount (€)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" step="0.01" placeholder="e.g., 50.00" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                        </div>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? "Recording..." : "Record Debt"}
-                        </Button>
-                    </form>
-                </Form>
-               ) : (
-                <p className="text-muted-foreground text-center">You need at least two players in the game to manage debts.</p>
-               )}
+                <div className="flex items-center p-4 bg-accent/50 rounded-lg">
+                    <Info className="w-5 h-5 mr-3 text-accent-foreground" />
+                    <p className="text-sm text-accent-foreground">
+                        To record new debts, go to the <strong>Sessions</strong> tab and use the <strong>Settle Session</strong> button on a past game.
+                    </p>
+                </div>
             </CardContent>
         </Card>
 
@@ -202,7 +83,7 @@ export function DebtsTab() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date</TableHead>
+                                    <TableHead>Session Date</TableHead>
                                     <TableHead>Transaction</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead className="text-center">Action</TableHead>
@@ -219,7 +100,7 @@ export function DebtsTab() {
                                 ))}
                                 {!loading && activeDebts.map((debt: Debt) => (
                                     <TableRow key={debt.id}>
-                                        <TableCell>{format(debt.date.toDate(), "dd MMM yyyy")}</TableCell>
+                                        <TableCell>{format(new Date(debt.sessionDate), "dd MMM yyyy")}</TableCell>
                                         <TableCell className="flex items-center gap-2 font-medium">
                                             {debt.fromPlayer} <ArrowRight className="h-4 w-4 text-muted-foreground" /> {debt.toPlayer}
                                         </TableCell>
@@ -281,7 +162,7 @@ export function DebtsTab() {
                                         <TableCell className="flex items-center gap-2">
                                             {debt.fromPlayer} <ArrowRight className="h-4 w-4" /> {debt.toPlayer}
                                         </TableCell>
-                                        <TableCell className="text-right font-medium text-gain">{debt.amount.toFixed(2)}€</TableCell>
+                                        <TableCell className="text-right font-medium" style={{ color: 'hsl(var(--color-gain))'}}>{debt.amount.toFixed(2)}€</TableCell>
                                         <TableCell className="text-center">
                                             <span className="flex items-center justify-center text-gain gap-1 text-sm"><CheckCircle className="h-4 w-4" /> Paid</span>
                                         </TableCell>

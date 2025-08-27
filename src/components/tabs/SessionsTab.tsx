@@ -3,14 +3,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
-import {
-  collection,
-  addDoc,
-  Timestamp,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -33,11 +26,10 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus, AlertCircle, CheckCircle } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, User, MapPin, Users, UserPlus, AlertCircle, CheckCircle, HandCoins } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthProvider";
 import { Session } from "@/lib/types";
 import {
   Table,
@@ -62,6 +54,8 @@ import {
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { SessionSettlementDialog } from "../SessionSettlementDialog";
+
 
 const addPlayerSchema = z.object({
   newPlayerName: z.string().min(1, "Player name cannot be empty."),
@@ -188,8 +182,7 @@ function PlayerManagement() {
 }
 
 export function SessionsTab() {
-  const { db, playerNames, sessions, loading } = useFirebase();
-  const { homeGameCode } = useAuth();
+  const { playerNames, sessions, loading, addSession, deleteSession } = useFirebase();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
 
@@ -228,7 +221,6 @@ export function SessionsTab() {
   }, [watchedPlayerValues, playerNames]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!db || !homeGameCode) return;
     setIsAdding(true);
     const playersResult = playerNames.reduce((acc, name) => {
         acc[name] = values[name] as number;
@@ -236,16 +228,16 @@ export function SessionsTab() {
     }, {} as Record<string, number>);
 
     try {
-      await addDoc(collection(db, 'homeGames', homeGameCode, "sessions"), {
+      await addSession({
         date: format(values.date, "yyyy-MM-dd"),
         location: values.location,
         addedBy: values.addedBy,
         players: playersResult,
-        timestamp: Timestamp.now(),
+        settled: false,
       });
       toast({
         title: "Success",
-        description: "New session added successfully.",
+        description: "New session added successfully. You can now settle debts for it below.",
       });
       form.reset({
           ...playerNames.reduce((acc, name) => ({ ...acc, [name]: 0 }), {}),
@@ -265,13 +257,12 @@ export function SessionsTab() {
     }
   }
 
-  async function deleteSession(sessionId: string) {
-    if(!db || !homeGameCode) return;
+  async function handleDeleteSession(sessionId: string) {
     try {
-        await deleteDoc(doc(db, 'homeGames', homeGameCode, "sessions", sessionId));
+        await deleteSession(sessionId);
         toast({
             title: "Session Deleted",
-            description: "The session has been removed.",
+            description: "The session and any associated debts have been removed.",
         })
     } catch (error) {
         console.error("Error deleting document: ", error);
@@ -435,7 +426,7 @@ export function SessionsTab() {
                   <TableHead key={name} className="text-right">{name}</TableHead>
                 ))}
                 <TableHead>Added By</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -446,7 +437,7 @@ export function SessionsTab() {
                             <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                             {playerNames.map(p => <TableCell key={p}><Skeleton className="h-4 w-16 ml-auto" /></TableCell>)}
                             <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                            <TableCell><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                            <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
                         </TableRow>
                     ))
                 )}
@@ -460,27 +451,30 @@ export function SessionsTab() {
                     </TableCell>
                   ))}
                   <TableCell>{session.addedBy}</TableCell>
-                  <TableCell className="text-right">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the session from
-                                {format(new Date(session.date), "PPP")} at {session.location}.
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteSession(session.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                  <TableCell className="text-center">
+                    <div className="flex gap-2 justify-center">
+                        <SessionSettlementDialog session={session} />
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the session from
+                                    {format(new Date(session.date), "PPP")} at {session.location} and all associated debts.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteSession(session.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
