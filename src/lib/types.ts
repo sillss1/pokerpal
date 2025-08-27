@@ -11,6 +11,7 @@ export interface Session {
   };
   timestamp: Timestamp;
   totalPot?: number;
+  settled: boolean;
 }
 
 export interface PlayerStats {
@@ -26,6 +27,8 @@ export interface PlayerStats {
 
 export interface Debt {
   id: string;
+  sessionId?: string;
+  sessionDate?: string;
   description: string;
   fromPlayer: string;
   toPlayer: string;

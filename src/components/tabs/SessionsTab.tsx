@@ -53,7 +53,7 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import { SessionSettlementDialog } from "../SessionSettlementDialog";
 
 
 const addPlayerSchema = z.object({
@@ -214,7 +214,7 @@ function SessionCorrector({ playerNames, watchedValues }: { playerNames: string[
                     </div>
                      <div className="text-center p-3 rounded-lg bg-loss/10">
                         <p className="text-sm text-loss font-semibold">Total Losses</p>
-                        <p className="text-2xl font-bold text-loss">{Math.abs(totalLosses).toFixed(2)}€</p>
+                        <p className="text-2xl font-bold text-loss">{totalLosses.toFixed(2)}€</p>
                     </div>
                 </div>
                 <div className={cn(
@@ -278,6 +278,7 @@ export function SessionsTab() {
         addedBy: values.addedBy,
         players: playersResult,
         totalPot: totalPot,
+        settled: false,
       });
       toast({
         title: "Success",
@@ -491,6 +492,7 @@ export function SessionsTab() {
                   <TableCell>{session.addedBy}</TableCell>
                   <TableCell className="text-center">
                     <div className="flex gap-2 justify-center">
+                       <SessionSettlementDialog session={session}/>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">

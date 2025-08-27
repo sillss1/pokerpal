@@ -40,7 +40,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "../ui/skeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { HandCoins, ArrowRight, CheckCircle, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
@@ -97,6 +97,7 @@ function AddDebtForm() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><PlusCircle />Add New Debt</CardTitle>
+                <CardDescription>Manually record a debt between two players. This is for transactions outside of session settlements.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -133,7 +134,7 @@ function AddDebtForm() {
                         <FormField control={form.control} name="description" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Description</FormLabel>
-                                <FormControl><Input placeholder="e.g., Poker night 25/12" {...field} /></FormControl>
+                                <FormControl><Input placeholder="e.g., Dinner, side bet, etc." {...field} /></FormControl>
                                 <FormDescription>A brief note about this debt.</FormDescription>
                                 <FormMessage />
                             </FormItem>

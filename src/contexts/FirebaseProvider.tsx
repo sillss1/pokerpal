@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, updateDoc, Firestore, addDoc, Timestamp, writeBatch, deleteDoc } from 'firebase/firestore';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, Firestore, addDoc, Timestamp, writeBatch, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { FirebaseConfig, Session, Debt } from '@/lib/types';
 import { getFirebaseConfig } from '@/lib/firebase-config';
 
@@ -23,6 +23,7 @@ interface FirebaseContextType {
   settleDebt: (debtId: string) => Promise<void>;
   addSession: (session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+  markSessionSettled: (sessionId: string) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -97,8 +98,9 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
                     id: doc.id,
                     ...doc.data(),
                 } as Session)).sort((a, b) => {
-                    if (!a.timestamp || !b.timestamp) return 0;
-                    return b.timestamp.toMillis() - a.timestamp.toMillis()
+                    const dateA = a.timestamp ? a.timestamp.toMillis() : new Date(a.date).getTime();
+                    const dateB = b.timestamp ? b.timestamp.toMillis() : new Date(b.date).getTime();
+                    return dateB - dateA;
                 });
                 setSessions(sessionsData);
                 setLoading(false);
@@ -161,12 +163,19 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
   const addDebt = useCallback(async (debt: Omit<Debt, 'id' | 'date' | 'settled' | 'settledDate'>) => {
     if (!db || !homeGameCode) throw new Error("Database not connected.");
     const debtsCollection = collection(db, 'homeGames', homeGameCode, 'debts');
-    await addDoc(debtsCollection, {
-        ...debt,
-        settled: false,
-        date: Timestamp.now(),
-        settledDate: null
-    });
+    
+    const debtPayload: any = {
+      ...debt,
+      settled: false,
+      date: Timestamp.now(),
+      settledDate: null
+    };
+
+    if (debt.sessionId) {
+      debtPayload.description = `From session on ${new Date(debt.sessionDate!).toLocaleDateString()}`;
+    }
+
+    await addDoc(debtsCollection, debtPayload);
   }, [db, homeGameCode]);
 
   const settleDebt = useCallback(async (debtId: string) => {
@@ -189,9 +198,27 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
   const deleteSession = useCallback(async (sessionId: string) => {
     if(!db || !homeGameCode) throw new Error("Database not connected.");
     
+    const batch = writeBatch(db);
+    
+    // Delete the session document
     const sessionDocRef = doc(db, 'homeGames', homeGameCode, "sessions", sessionId);
-    await deleteDoc(sessionDocRef);
+    batch.delete(sessionDocRef);
 
+    // Find and delete all debts associated with this session
+    const debtsQuery = query(collection(db, 'homeGames', homeGameCode, "debts"), where("sessionId", "==", sessionId));
+    const debtsSnapshot = await getDocs(debtsQuery);
+    debtsSnapshot.forEach(debtDoc => {
+        batch.delete(debtDoc.ref);
+    });
+
+    await batch.commit();
+
+  }, [db, homeGameCode]);
+  
+  const markSessionSettled = useCallback(async (sessionId: string) => {
+      if(!db || !homeGameCode) throw new Error("Database not connected.");
+      const sessionDocRef = doc(db, 'homeGames', homeGameCode, 'sessions', sessionId);
+      await updateDoc(sessionDocRef, { settled: true });
   }, [db, homeGameCode]);
 
   const value = {
@@ -208,6 +235,7 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     settleDebt,
     addSession,
     deleteSession,
+    markSessionSettled,
   };
 
   return <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>;
