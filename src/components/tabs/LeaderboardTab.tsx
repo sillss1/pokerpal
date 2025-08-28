@@ -51,12 +51,13 @@ export function LeaderboardTab() {
     }, {} as { [key: string]: PlayerStats });
 
     sessions.forEach((session) => {
-      Object.entries(session.players).forEach(([playerName, data]) => {
-        if (stats[playerName] && data) { // Check if data exists
+      playerNames.forEach((playerName) => {
+        const data = session.players[playerName];
+        if (stats[playerName] && data && data.buyIns > 0) {
           const result = data.result;
           stats[playerName].totalWinnings += result;
           stats[playerName].totalSessions += 1;
-          stats[playerName].totalBuyIns += data.buyIns || 0;
+          stats[playerName].totalBuyIns += data.buyIns;
 
           if (result > 0) {
             stats[playerName].sessionsWon += 1;

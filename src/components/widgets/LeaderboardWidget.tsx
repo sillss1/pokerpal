@@ -60,8 +60,9 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
         }, {} as { [key: string]: PlayerStats });
 
         sessions.forEach((session) => {
-            Object.entries(session.players).forEach(([playerName, data]) => {
-                if (stats[playerName] && data) {
+            playerNames.forEach((playerName) => {
+                const data = session.players[playerName];
+                if (stats[playerName] && data && data.buyIns > 0) {
                     const result = data.result;
                     stats[playerName].totalWinnings += result;
                     if (result > 0) {
