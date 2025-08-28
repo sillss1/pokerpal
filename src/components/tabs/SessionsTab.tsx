@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, PlusCircle, Trash2, Users, UserPlus, AlertCircle, CheckCircle, Scale, MapPin, User, MinusCircle, DollarSign, Wallet, FilePenLine } from "lucide-react";
+import { CalendarIcon, PlusCircle, Trash2, Users, UserPlus, AlertCircle, CheckCircle, Scale, MapPin, User, MinusCircle, DollarSign, Wallet, FilePenLine, Warehouse } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -70,11 +70,16 @@ const addPlayerSchema = z.object({
 });
 type AddPlayerFormValues = z.infer<typeof addPlayerSchema>;
 
+const addLocationSchema = z.object({
+  newLocationName: z.string().min(1, "Location name cannot be empty."),
+});
+type AddLocationFormValues = z.infer<typeof addLocationSchema>;
+
 
 // Validation schema for session forms (used for both Add and Edit)
-const createSessionFormSchema = (playerNames: string[]) => z.object({
+const createSessionFormSchema = (playerNames: string[], locations: string[]) => z.object({
     date: z.date(),
-    location: z.string().min(1, "Location is required."),
+    location: z.string({ required_error: "Location is required." }).min(1, "Location is required."),
     addedBy: z.string({required_error: "Please select who added this session."}).min(1, "Please select who added this session."),
     buyInAmount: z.coerce.number().positive("Buy-in amount must be a positive number.").default(10),
     ...playerNames.reduce((acc, name) => {
@@ -221,6 +226,109 @@ function PlayerManagement() {
     )
 }
 
+function LocationManagement() {
+    const { locations, updateLocations } = useFirebase();
+    const { toast } = useToast();
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const form = useForm<AddLocationFormValues>({
+        resolver: zodResolver(addLocationSchema),
+        defaultValues: { newLocationName: "" },
+    });
+
+    const handleAddLocation = async (values: AddLocationFormValues) => {
+        if (locations.includes(values.newLocationName)) {
+            form.setError("newLocationName", { type: "manual", message: "This location already exists."});
+            return;
+        }
+        setIsUpdating(true);
+        try {
+            const newLocationList = [...locations, values.newLocationName];
+            await updateLocations(newLocationList);
+            toast({ title: "Location Added", description: `${values.newLocationName} has been added.` });
+            form.reset();
+        } catch (e) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to add location." });
+        } finally {
+            setIsUpdating(false);
+        }
+    }
+
+    const handleRemoveLocation = async (locationName: string) => {
+        setIsUpdating(true);
+        try {
+            const newLocationList = locations.filter(name => name !== locationName);
+            await updateLocations(newLocationList);
+            toast({ title: "Location Removed", description: `${locationName} has been removed.` });
+        } catch (e) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to remove location." });
+        } finally {
+            setIsUpdating(false);
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Warehouse /> Location Management</CardTitle>
+                <CardDescription>Add or remove frequent game locations to speed up session logging.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleAddLocation)} className="flex items-start gap-2">
+                         <FormField
+                            control={form.control}
+                            name="newLocationName"
+                            render={({ field }) => (
+                                <FormItem className="flex-grow">
+                                    <FormLabel className="sr-only">New Location Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter new location name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                        <Button type="submit" disabled={isUpdating}>
+                            <PlusCircle className="mr-2 h-4 w-4"/> Add Location
+                        </Button>
+                    </form>
+                </Form>
+                 <div>
+                    <h4 className="font-semibold text-sm mb-2">Current Locations</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {locations.map(name => (
+                            <div key={name} className="flex items-center gap-2 rounded-full border border-border bg-secondary text-secondary-foreground px-3 py-1 text-sm">
+                                {name}
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <button disabled={isUpdating} className="flex items-center justify-center w-4 h-4 rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors">
+                                            <Trash2 className="h-3 w-3" />
+                                        </button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will remove {name} from your list of saved locations. This will not affect past sessions. Are you sure?
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRemoveLocation(name)} className="bg-destructive hover:bg-destructive/90">Remove Location</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
+                        ))}
+                        {locations.length === 0 && <p className="text-sm text-muted-foreground">No locations configured.</p>}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 function SessionCorrector({ form }: { form: any }) {
     const playerNames = useFirebase().playerNames;
     const watchedPlayerResults = form.watch(playerNames.map(name => `${name}.result`));
@@ -280,7 +388,7 @@ function SessionCorrector({ form }: { form: any }) {
 }
 
 
-function SessionFormFields({ form, playerNames }: { form: any, playerNames: string[] }) {
+function SessionFormFields({ form, playerNames, locations }: { form: any, playerNames: string[], locations: string[] }) {
     const handleResultChange = (name: string, value: number) => {
         const currentBuyIns = form.getValues(`${name}.buyIns`);
         if(value !== 0 && currentBuyIns === 0) {
@@ -312,7 +420,17 @@ function SessionFormFields({ form, playerNames }: { form: any, playerNames: stri
                         <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus/>
                       </PopoverContent></Popover><FormMessage />
                   </FormItem>)}/>
-              <FormField control={form.control} name="location" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Location</FormLabel><FormControl><Input placeholder="e.g., John's House" {...field} /></FormControl><FormMessage /></FormItem>)}/>
+               <FormField control={form.control} name="location" render={({ field }) => (
+                <FormItem><FormLabel className="flex items-center gap-1"><MapPin className="w-4 h-4" /> Location</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select a location" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                      {locations.map((name) => (<SelectItem key={name} value={name}>{name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <FormDescription>You can add more locations below.</FormDescription>
+                <FormMessage />
+              </FormItem>)}/>
               <FormField control={form.control} name="addedBy" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><User className="w-4 h-4" />Added by</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select a player" /></SelectTrigger></FormControl><SelectContent>{playerNames.map((name) => (<SelectItem key={name} value={name}>{name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>)}/>
               <FormField control={form.control} name="buyInAmount" render={({ field }) => (<FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4" />Buy-in Amount (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>)}/>
             </div>
@@ -363,12 +481,12 @@ function SessionFormFields({ form, playerNames }: { form: any, playerNames: stri
 }
 
 function EditSessionDialog({ session }: { session: Session }) {
-    const { playerNames, updateSession } = useFirebase();
+    const { playerNames, locations, updateSession } = useFirebase();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const formSchema = createSessionFormSchema(playerNames);
+    const formSchema = createSessionFormSchema(playerNames, locations);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -467,7 +585,7 @@ function EditSessionDialog({ session }: { session: Session }) {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <ScrollArea className="max-h-[70vh] p-1">
-                           <SessionFormFields form={form} playerNames={playerNames} />
+                           <SessionFormFields form={form} playerNames={playerNames} locations={locations} />
                         </ScrollArea>
                         <DialogFooter>
                             <DialogClose asChild>
@@ -547,11 +665,11 @@ function SessionTableRow({ session, playerNames, onDelete }: { session: Session;
 }
 
 export function SessionsTab() {
-  const { playerNames, sessions, loading, addSession, deleteSession } = useFirebase();
+  const { playerNames, locations, sessions, loading, addSession, deleteSession } = useFirebase();
   const { toast } = useToast();
   const [isAdding, setIsAdding] = useState(false);
   
-  const formSchema = useMemo(() => createSessionFormSchema(playerNames), [playerNames]);
+  const formSchema = useMemo(() => createSessionFormSchema(playerNames, locations), [playerNames, locations]);
 
   const getInitialFormValues = useMemo(() => {
     return () => {
@@ -578,7 +696,7 @@ export function SessionsTab() {
   useEffect(() => {
       form.reset(getInitialFormValues());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerNames]);
+  }, [playerNames, locations]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
@@ -654,7 +772,7 @@ export function SessionsTab() {
         {playerNames.length > 0 ? (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <SessionFormFields form={form} playerNames={playerNames} />
+            <SessionFormFields form={form} playerNames={playerNames} locations={locations} />
             <Button type="submit" disabled={isAdding}>
               {isAdding ? "Adding..." : "Add Session"}
             </Button>
@@ -714,8 +832,9 @@ export function SessionsTab() {
         </ScrollArea>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <PlayerManagement />
+        <LocationManagement />
       </div>
     </div>
   );

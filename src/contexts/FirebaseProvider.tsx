@@ -14,11 +14,13 @@ interface FirebaseContextType {
   sessions: Session[];
   debts: Debt[];
   playerNames: string[];
+  locations: string[];
   loading: boolean;
   error: string | null;
   connectionStatus: ConnectionStatus;
   firebaseConfig: FirebaseConfig | null;
   updatePlayerNames: (newPlayerNames: string[]) => Promise<void>;
+  updateLocations: (newLocations: string[]) => Promise<void>;
   addDebt: (debt: Omit<Debt, 'id' | 'date' | 'settled' | 'settledDate'>) => Promise<void>;
   settleDebt: (debtId: string) => Promise<void>;
   addSession: (session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
@@ -41,6 +43,7 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
   const [sessions, setSessions] = useState<Session[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [playerNames, setPlayerNames] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
@@ -56,6 +59,7 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
         setSessions([]);
         setDebts([]);
         setPlayerNames([]);
+        setLocations([]);
         return;
     }
 
@@ -77,8 +81,11 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
             
             configUnsubscribe = onSnapshot(gameConfigDocRef, (docSnap) => {
               if (docSnap.exists()) {
-                  const currentPlayers: string[] = docSnap.data().playerNames || [];
+                  const data = docSnap.data();
+                  const currentPlayers: string[] = data.playerNames || [];
+                  const currentLocations: string[] = data.locations || [];
                   setPlayerNames(currentPlayers);
+                  setLocations(currentLocations);
                   setConnectionStatus('connected');
               } else {
                   setError("This Home Game does not exist. Please check the code or create a new game.");
@@ -162,6 +169,14 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     await updateDoc(gameConfigDocRef, { playerNames: newPlayerNames });
   },[db, homeGameCode]);
 
+  const updateLocations = useCallback(async (newLocations: string[]) => {
+    if(!db || !homeGameCode) {
+        throw new Error("Not connected to Firebase or no Home Game code specified.");
+    }
+    const gameConfigDocRef = doc(db, 'homeGames', homeGameCode);
+    await updateDoc(gameConfigDocRef, { locations: newLocations });
+  },[db, homeGameCode]);
+
   const addDebt = useCallback(async (debt: Omit<Debt, 'id' | 'date' | 'settled' | 'settledDate'>) => {
     if (!db || !homeGameCode) throw new Error("Database not connected.");
     const debtsCollection = collection(db, 'homeGames', homeGameCode, 'debts');
@@ -236,11 +251,13 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     sessions,
     debts,
     playerNames,
+    locations,
     loading,
     error,
     connectionStatus,
     firebaseConfig,
     updatePlayerNames,
+    updateLocations,
     addDebt,
     settleDebt,
     addSession,
