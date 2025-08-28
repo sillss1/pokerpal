@@ -79,7 +79,7 @@ const createSessionFormSchema = (playerNames: string[]) => z.object({
     buyInAmount: z.coerce.number().positive("Buy-in amount must be a positive number.").default(10),
     ...playerNames.reduce((acc, name) => {
         acc[name] = z.object({
-            result: z.coerce.number().optional().default(0),
+            result: z.string().transform(val => parseFloat(val) || 0),
             buyIns: z.coerce.number().int().min(0).optional().default(0),
         });
         return acc;
@@ -411,19 +411,18 @@ function SessionFormFields({ form, playerNames, locations }: { form: any, player
     const { updateLocations } = useFirebase();
     const { toast } = useToast();
     
-    const handleResultChange = (name: string, value: number) => {
+    const handleResultChange = (name: string, value: string) => {
         const currentBuyIns = form.getValues(`${name}.buyIns`);
-        if(value !== 0 && currentBuyIns === 0) {
+        const numericValue = parseFloat(value);
+        if(!isNaN(numericValue) && numericValue !== 0 && currentBuyIns === 0) {
             form.setValue(`${name}.buyIns`, 1, { shouldValidate: true });
-        } else if (value === 0 && currentBuyIns > 0) {
-            // Allow result to be 0 if buy-ins exist (break-even)
         }
         form.setValue(`${name}.result`, value, { shouldValidate: true });
     }
   
     const handleBuyInChange = (name: string, value: number) => {
         if (value === 0) {
-            form.setValue(`${name}.result`, 0, { shouldValidate: true });
+            form.setValue(`${name}.result`, "0", { shouldValidate: true });
         }
         form.setValue(`${name}.buyIns`, value, { shouldValidate: true });
     }
@@ -532,7 +531,16 @@ function SessionFormFields({ form, playerNames, locations }: { form: any, player
                      <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
-                        <FormControl><Input type="text" inputMode="decimal" placeholder="0.00" {...field} onChange={e => handleResultChange(name, e.target.value === '' ? 0 : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
+                        <FormControl>
+                            <Input 
+                                type="text" 
+                                inputMode="decimal" 
+                                placeholder="0.00" 
+                                {...field} 
+                                onChange={e => handleResultChange(name, e.target.value)} 
+                                value={field.value ?? ''} 
+                            />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>)}/>
                   </div>
@@ -564,11 +572,11 @@ function EditSessionDialog({ session }: { session: Session }) {
             buyInAmount: session.buyInAmount,
             ...playerNames.reduce((acc, name) => {
                 acc[name] = {
-                    result: session.players[name]?.result ?? 0,
+                    result: session.players[name]?.result?.toString() ?? "0",
                     buyIns: session.players[name]?.buyIns ?? 0,
                 };
                 return acc;
-            }, {} as Record<string, { result: number; buyIns: number }>),
+            }, {} as Record<string, { result: string; buyIns: number }>),
         }
     });
 
@@ -581,11 +589,11 @@ function EditSessionDialog({ session }: { session: Session }) {
             buyInAmount: session.buyInAmount,
             ...playerNames.reduce((acc, name) => {
                 acc[name] = {
-                    result: session.players[name]?.result ?? 0,
+                    result: session.players[name]?.result?.toString() ?? "0",
                     buyIns: session.players[name]?.buyIns ?? 0,
                 };
                 return acc;
-            }, {} as Record<string, { result: number; buyIns: number }>),
+            }, {} as Record<string, { result: string; buyIns: number }>),
         });
     }, [session, playerNames, form]);
 
@@ -741,7 +749,7 @@ export function SessionsTab() {
   const getInitialFormValues = useMemo(() => {
     return () => {
       const initialPlayerValues = playerNames.reduce((acc, name) => {
-          acc[name] = { result: 0, buyIns: 0 };
+          acc[name] = { result: "0", buyIns: 0 };
           return acc;
       }, {} as any);
   
