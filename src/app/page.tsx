@@ -1,4 +1,3 @@
-
 "use client";
 
 import { PokerPal } from "@/components/PokerPal";

@@ -1,9 +1,8 @@
-
 import { type Timestamp } from "firebase/firestore";
 
 export interface SessionPlayer {
-  result?: number;
-  buyIns?: number;
+  result: number;
+  buyIns: number;
 }
 
 export interface Session {
@@ -17,6 +16,7 @@ export interface Session {
   };
   timestamp: Timestamp;
   totalPot?: number;
+  settled?: boolean;
 }
 
 export interface PlayerStats {

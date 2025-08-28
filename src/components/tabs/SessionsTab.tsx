@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -286,7 +284,7 @@ function LocationCombobox({ field, form, locations, updateLocations, toast }: an
     const [inputValue, setInputValue] = useState("");
   
     const handleSelectLocation = (currentValue: string) => {
-        form.setValue("location", currentValue);
+        form.setValue("location", currentValue === inputValue ? "" : currentValue, { shouldValidate: true });
         setInputValue("");
         setOpen(false);
     }
@@ -300,7 +298,9 @@ function LocationCombobox({ field, form, locations, updateLocations, toast }: an
             toast({ variant: "destructive", title: "Error", description: "Failed to add location." });
           }
         }
-        handleSelectLocation(newLocation);
+        form.setValue("location", newLocation, { shouldValidate: true });
+        setInputValue("");
+        setOpen(false);
     };
 
     const handleRemoveLocation = async (locationToRemove: string) => {
@@ -319,11 +319,8 @@ function LocationCombobox({ field, form, locations, updateLocations, toast }: an
     return (
         <Popover open={open} onOpenChange={(isOpen) => {
             setOpen(isOpen);
-            if (!isOpen) {
-                const currentValue = form.getValues("location");
-                if (inputValue && !locations.includes(inputValue) && currentValue !== inputValue) {
-                    handleAddNewLocation(inputValue);
-                }
+            if (!isOpen && inputValue && !locations.includes(inputValue)) {
+                handleAddNewLocation(inputValue);
             }
         }}>
             <PopoverTrigger asChild>
@@ -369,7 +366,7 @@ function LocationCombobox({ field, form, locations, updateLocations, toast }: an
                                     onSelect={handleSelectLocation}
                                     className="flex justify-between items-center"
                                 >
-                                    <span>
+                                    <span className="flex items-center">
                                         <Check className={cn("mr-2 h-4 w-4", location === field.value ? "opacity-100" : "opacity-0")} />
                                         {location}
                                     </span>
@@ -905,8 +902,3 @@ export function SessionsTab() {
     </div>
   );
 }
-    
-
-    
-
-

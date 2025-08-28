@@ -1,4 +1,3 @@
-
 import { FirebaseConfig } from './types';
 
 // This function is now designed to run on the client, where process.env is populated by Next.js.
