@@ -53,6 +53,7 @@ import {
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { SessionSettlementDialog } from "../SessionSettlementDialog";
+import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 
 
 const addPlayerSchema = z.object({
@@ -182,6 +183,7 @@ function PlayerManagement() {
 function SessionCorrector({ form }: { form: any }) {
     const playerNames = useFirebase().playerNames;
     const watchedPlayerResults = form.watch(playerNames.map(name => `${name}.result`));
+    const watchedPlayerBuyIns = form.watch(playerNames.map(name => `${name}.buyIns`));
 
     const { totalWins, totalLosses, participatingPlayers } = useMemo(() => {
         let wins = 0;
@@ -189,8 +191,9 @@ function SessionCorrector({ form }: { form: any }) {
         const participating: string[] = [];
         
         playerNames.forEach((name, index) => {
-            const result = parseFloat(watchedPlayerResults[index]) || 0;
-            if (result !== 0) {
+            const buyIns = parseInt(watchedPlayerBuyIns[index]) || 0;
+            if (buyIns > 0) {
+                 const result = parseFloat(watchedPlayerResults[index]) || 0;
                 participating.push(name);
                 if (result > 0) wins += result;
                 if (result < 0) losses += result;
@@ -198,7 +201,7 @@ function SessionCorrector({ form }: { form: any }) {
         });
 
         return { totalWins: wins, totalLosses: losses, participatingPlayers: participating };
-    }, [watchedPlayerResults, playerNames]);
+    }, [watchedPlayerResults, watchedPlayerBuyIns, playerNames]);
     
     const balance = totalWins + totalLosses;
     const isBalanced = Math.abs(balance) < 0.01;
@@ -252,7 +255,7 @@ function SessionTableRow({ session, playerNames, onDelete }: { session: Session;
             <TableCell className="text-right font-semibold">{(session.totalPot || 0).toFixed(2)}€</TableCell>
             {playerNames.map((name) => {
                 const playerData = session.players[name];
-                const didPlay = playerData && (playerData.result !== 0 || playerData.buyIns > 0);
+                const didPlay = playerData && (playerData.buyIns || 0) > 0;
 
                 return (
                     <TableCell key={name} className="text-right font-medium">
@@ -317,22 +320,19 @@ export function SessionsTab() {
         return acc;
       }, {} as Record<string, z.ZodType<any, any>>),
     }).refine(data => {
-        const participatingPlayers = playerNames.filter(name => data[name]?.result !== 0);
-        if (participatingPlayers.length === 0) return true; // No players, no validation needed
+        const participatingPlayers = playerNames.filter(name => (data[name]?.buyIns || 0) > 0);
+        if (participatingPlayers.length === 0) return true; 
 
         const total = participatingPlayers.reduce((sum, name) => sum + (data[name]?.result || 0), 0);
-        return Math.abs(total) < 0.01; // Allow for floating point inaccuracies
+        return Math.abs(total) < 0.01;
     }, {
         message: "The sum of results for participating players must be 0.",
-        path: [''] // General form error
+        path: [''] 
     }).refine(data => {
-        const participatingPlayers = playerNames.filter(name => data[name]?.result !== 0);
-        if (participatingPlayers.length === 0) {
-            return false;
-        }
-        return true;
+        const participatingPlayers = playerNames.filter(name => (data[name]?.buyIns || 0) > 0);
+        return participatingPlayers.length > 0;
     }, {
-        message: "At least one player must have a non-zero result.",
+        message: "At least one player must have a buy-in to log a session.",
         path: ['']
     });
 
@@ -365,22 +365,18 @@ export function SessionsTab() {
   const handleResultChange = (name: string, value: number) => {
       const currentBuyIns = form.getValues(`${name}.buyIns`);
       if(value !== 0 && currentBuyIns === 0) {
-          form.setValue(`${name}.buyIns`, 1);
-      } else if (value === 0) {
-          form.setValue(`${name}.buyIns`, 0);
+          form.setValue(`${name}.buyIns`, 1, { shouldValidate: true });
+      } else if (value === 0 && currentBuyIns > 0) {
+          // Allow result to be 0 if buy-ins exist (break-even)
       }
-      form.setValue(`${name}.result`, value);
+      form.setValue(`${name}.result`, value, { shouldValidate: true });
   }
 
   const handleBuyInChange = (name: string, value: number) => {
-      const currentResult = form.getValues(`${name}.result`);
-      if (value > 0 && currentResult === 0) {
-          // You might want to leave the result as 0 and let the user fill it.
-          // Or set a default, but that could be confusing.
-      } else if (value === 0) {
-          form.setValue(`${name}.result`, 0);
+      if (value === 0) {
+          form.setValue(`${name}.result`, 0, { shouldValidate: true });
       }
-      form.setValue(`${name}.buyIns`, value);
+      form.setValue(`${name}.buyIns`, value, { shouldValidate: true });
   }
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -391,15 +387,13 @@ export function SessionsTab() {
 
     playerNames.forEach(name => {
         const playerData = values[name];
-        // Only include players who participated (non-zero result)
-        if (playerData.result !== 0) {
+        if (playerData.buyIns > 0) {
             playersResult[name] = {
                 result: playerData.result,
                 buyIns: playerData.buyIns
             };
             totalBuyIns += playerData.buyIns;
         } else {
-            // Store them with 0 values to indicate they were present but didn't play
              playersResult[name] = {
                 result: 0,
                 buyIns: 0
@@ -485,19 +479,13 @@ export function SessionsTab() {
               <div className="flex justify-between items-center mb-1">
                 <div>
                     <FormLabel className="text-base font-medium">Player Details</FormLabel>
-                    <FormDescription>Enter results (win/loss) and number of buy-ins for each player. Results of 0 mean the player didn't play.</FormDescription>
+                    <FormDescription>Enter buy-ins for each player. If buy-ins are 0, the player did not play. Then enter the final result.</FormDescription>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-6 mt-4">
                 {playerNames.map((name) => (
                   <div key={name} className="p-4 border rounded-lg bg-muted/30 space-y-3">
                     <h4 className="font-semibold text-center">{name}</h4>
-                     <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => handleResultChange(name, e.target.value === '' ? 0 : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
-                        <FormMessage />
-                      </FormItem>)}/>
                     <FormField control={form.control} name={`${name}.buyIns`} render={({ field }) => (
                       <FormItem>
                          <FormLabel className="flex items-center gap-1.5 text-sm"><Wallet className="w-4 h-4" />Buy-ins</FormLabel>
@@ -514,12 +502,18 @@ export function SessionsTab() {
                          </FormControl>
                         <FormMessage />
                       </FormItem>)}/>
+                     <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => handleResultChange(name, e.target.value === '' ? 0 : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
+                        <FormMessage />
+                      </FormItem>)}/>
                   </div>
                 ))}
               </div>
             </div>
              {form.formState.errors.root && (
-                <p className="text-sm font-medium text-destructive">{form.formState.errors.root.message}</p>
+                <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.root.message}</p>
             )}
             <SessionCorrector form={form} />
             <Button type="submit" disabled={isAdding}>
@@ -534,7 +528,7 @@ export function SessionsTab() {
       
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Past Sessions</h3>
-        <div className="w-full overflow-auto border rounded-md">
+        <ScrollArea className="w-full whitespace-nowrap rounded-md border">
           <Table>
             <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm">
               <TableRow>
@@ -575,7 +569,8 @@ export function SessionsTab() {
               )}
             </TableBody>
           </Table>
-        </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </div>
 
       <div className="mt-8">
@@ -584,3 +579,5 @@ export function SessionsTab() {
     </div>
   );
 }
+
+    
