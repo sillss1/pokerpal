@@ -98,7 +98,7 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
         if (topPlayers.length === 0) {
             return (
                 <div className="text-center text-muted-foreground py-6">
-                    Sem dados para mostrar o pódio. Adicione uma sessão!
+                    No data to show the podium. Add a session!
                 </div>
             );
         }
@@ -116,10 +116,10 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle className="flex items-center gap-2"><Trophy /> Pódio</CardTitle>
-                    <CardDescription>Os 3 melhores jogadores.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Trophy /> Podium</CardTitle>
+                    <CardDescription>The top 3 players.</CardDescription>
                 </div>
-                <Button variant="link" onClick={onSeeMore}>Ver todos</Button>
+                <Button variant="link" onClick={onSeeMore}>See All</Button>
             </CardHeader>
             <CardContent>
                 {renderContent()}

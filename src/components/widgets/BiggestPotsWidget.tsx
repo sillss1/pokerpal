@@ -58,7 +58,7 @@ export function BiggestPotsWidget({ onSeeMore }: { onSeeMore: () => void }) {
         if (biggestSessions.length === 0) {
             return (
                 <div className="text-center text-muted-foreground py-6">
-                    Nenhuma sessão com pote registado.
+                    No sessions with a pot registered.
                 </div>
             );
         }
@@ -76,10 +76,10 @@ export function BiggestPotsWidget({ onSeeMore }: { onSeeMore: () => void }) {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                    <CardTitle className="flex items-center gap-2"><Flame />Maiores Potes</CardTitle>
-                    <CardDescription>As sessões com maior volume.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Flame />Biggest Pots</CardTitle>
+                    <CardDescription>The sessions with the biggest volume.</CardDescription>
                 </div>
-                <Button variant="link" onClick={onSeeMore}>Ver sessões</Button>
+                <Button variant="link" onClick={onSeeMore}>See sessions</Button>
             </CardHeader>
             <CardContent>
                 {renderContent()}
