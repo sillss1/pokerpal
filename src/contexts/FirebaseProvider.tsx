@@ -24,7 +24,6 @@ interface FirebaseContextType {
   addSession: (session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
   updateSession: (sessionId: string, session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
-  markSessionSettled: (sessionId: string) => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -231,11 +230,6 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
 
   }, [db, homeGameCode]);
   
-  const markSessionSettled = useCallback(async (sessionId: string) => {
-      if(!db || !homeGameCode) throw new Error("Database not connected.");
-      const sessionDocRef = doc(db, 'homeGames', homeGameCode, 'sessions', sessionId);
-      await updateDoc(sessionDocRef, { settled: true });
-  }, [db, homeGameCode]);
 
   const value = {
     db,
@@ -252,7 +246,6 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     addSession,
     updateSession,
     deleteSession,
-    markSessionSettled,
   };
 
   return <FirebaseContext.Provider value={value}>{children}</FirebaseContext.Provider>;
@@ -265,5 +258,3 @@ export const useFirebase = (): FirebaseContextType => {
   }
   return context;
 };
-
-    

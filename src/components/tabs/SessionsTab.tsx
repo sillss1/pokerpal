@@ -62,7 +62,6 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Skeleton } from "../ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { SessionSettlementDialog } from "../SessionSettlementDialog";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 
 
@@ -80,8 +79,8 @@ const createSessionFormSchema = (playerNames: string[]) => z.object({
     buyInAmount: z.coerce.number().positive("Buy-in amount must be a positive number.").default(10),
     ...playerNames.reduce((acc, name) => {
         acc[name] = z.object({
-            result: z.coerce.number().default(0),
-            buyIns: z.coerce.number().int().min(0).default(0),
+            result: z.coerce.number().optional().default(0),
+            buyIns: z.coerce.number().int().min(0).optional().default(0),
         });
         return acc;
     }, {} as Record<string, z.ZodType<any, any>>),
@@ -412,12 +411,14 @@ function EditSessionDialog({ session }: { session: Session }) {
 
         playerNames.forEach(name => {
             const playerData = values[name];
+            const buyIns = playerData.buyIns || 0;
+
             playersResult[name] = {
-                result: playerData.buyIns > 0 ? playerData.result : 0,
-                buyIns: playerData.buyIns
+                result: buyIns > 0 ? (playerData.result || 0) : 0,
+                buyIns: buyIns
             };
-            if (playerData.buyIns > 0) {
-                totalBuyIns += playerData.buyIns;
+            if (buyIns > 0) {
+                totalBuyIns += buyIns;
             }
         });
 
@@ -431,7 +432,6 @@ function EditSessionDialog({ session }: { session: Session }) {
                 buyInAmount: values.buyInAmount,
                 players: playersResult,
                 totalPot: totalPot,
-                settled: session.settled,
             });
             toast({
                 title: "Success",
@@ -519,7 +519,6 @@ function SessionTableRow({ session, playerNames, onDelete }: { session: Session;
             <TableCell>{session.addedBy}</TableCell>
             <TableCell className="text-center">
                 <div className="flex gap-1 justify-center">
-                    <SessionSettlementDialog session={session} />
                     <EditSessionDialog session={session} />
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -589,12 +588,13 @@ export function SessionsTab() {
 
     playerNames.forEach(name => {
         const playerData = values[name];
+        const buyIns = playerData.buyIns || 0;
         playersResult[name] = {
-            result: playerData.buyIns > 0 ? playerData.result : 0,
-            buyIns: playerData.buyIns
+            result: buyIns > 0 ? (playerData.result || 0) : 0,
+            buyIns: buyIns
         };
-        if (playerData.buyIns > 0) {
-            totalBuyIns += playerData.buyIns;
+        if (buyIns > 0) {
+            totalBuyIns += buyIns;
         }
     });
 
@@ -608,7 +608,6 @@ export function SessionsTab() {
         buyInAmount: values.buyInAmount,
         players: playersResult,
         totalPot: totalPot,
-        settled: false,
       });
       toast({
         title: "Success",

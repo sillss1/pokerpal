@@ -17,7 +17,6 @@ export interface Session {
   };
   timestamp: Timestamp;
   totalPot?: number;
-  settled: boolean;
 }
 
 export interface PlayerStats {

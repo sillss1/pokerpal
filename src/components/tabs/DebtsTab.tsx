@@ -62,15 +62,7 @@ function AddDebtForm() {
     const { playerNames, addDebt, sessions } = useFirebase();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
-    const [unsettledSessions, setUnsettledSessions] = useState<Session[]>([]);
     
-    useEffect(() => {
-        const sortedSessions = sessions
-            .filter(s => !s.settled)
-            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setUnsettledSessions(sortedSessions);
-    }, [sessions]);
-
     const form = useForm<AddDebtFormValues>({
         resolver: zodResolver(addDebtSchema),
         defaultValues: {
@@ -120,24 +112,11 @@ function AddDebtForm() {
         }
     }
 
-    const handleSessionChange = (sessionId: string) => {
-        form.setValue("sessionId", sessionId);
-        if (sessionId && sessionId !== 'none') {
-            const session = sessions.find(s => s.id === sessionId);
-            if (session) {
-                form.setValue("description", `From session on ${format(new Date(session.date), "PPP")}`);
-            }
-        } else {
-            form.setValue("description", "");
-        }
-    };
-
-
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><PlusCircle />Add New Debt</CardTitle>
-                <CardDescription>Manually record a debt between two players. You can optionally link this debt to a specific game session.</CardDescription>
+                <CardDescription>Manually record a debt between two players. For example, for side bets or other expenses.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -168,25 +147,6 @@ function AddDebtForm() {
                             <FormItem>
                                 <FormLabel>Amount (€)</FormLabel>
                                 <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value || ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        
-                        <FormField control={form.control} name="sessionId" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Associate with a Session (Optional)</FormLabel>
-                                <Select onValueChange={handleSessionChange} value={field.value || ""}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Select an unsettled session" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        {unsettledSessions.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>
-                                                {format(new Date(s.date), "dd MMM yyyy")} - {s.location}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormDescription>Link this debt to a specific game.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )} />
