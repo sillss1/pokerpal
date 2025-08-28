@@ -265,8 +265,8 @@ export function DebtsTab() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Transaction</TableHead>
+                                    <TableHead className="min-w-[100px]">Date</TableHead>
+                                    <TableHead className="min-w-[180px]">Transaction</TableHead>
                                     <TableHead>Description</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead className="text-center">Action</TableHead>
@@ -300,8 +300,8 @@ export function DebtsTab() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Settled On</TableHead>
-                                    <TableHead>Transaction</TableHead>
+                                    <TableHead className="min-w-[100px]">Settled On</TableHead>
+                                    <TableHead className="min-w-[180px]">Transaction</TableHead>
                                     <TableHead>Description</TableHead>
                                     <TableHead className="text-right">Amount</TableHead>
                                     <TableHead className="text-center">Status</TableHead>
@@ -332,3 +332,5 @@ export function DebtsTab() {
     </div>
   );
 }
+
+    

@@ -300,7 +300,7 @@ function SessionFormFields({ form, playerNames }: { form: any, playerNames: stri
 
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField control={form.control} name="date" render={({ field }) => (
                   <FormItem className="flex flex-col"><FormLabel>Date</FormLabel>
                   <Popover><PopoverTrigger asChild><FormControl>
@@ -324,7 +324,7 @@ function SessionFormFields({ form, playerNames }: { form: any, playerNames: stri
                     <FormDescription>Enter buy-ins for each player. If buy-ins are 0, the player did not play. Then enter the final result.</FormDescription>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-6 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-6 mt-4">
                 {playerNames.map((name) => (
                   <div key={name} className="p-4 border rounded-lg bg-muted/30 space-y-3">
                     <h4 className="font-semibold text-center">{name}</h4>
@@ -457,7 +457,7 @@ function EditSessionDialog({ session }: { session: Session }) {
                     <FilePenLine className="h-4 w-4" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl">
+            <DialogContent className="max-w-md md:max-w-4xl w-[95vw]">
                 <DialogHeader>
                     <DialogTitle>Edit Session</DialogTitle>
                     <DialogDescription>
@@ -466,9 +466,9 @@ function EditSessionDialog({ session }: { session: Session }) {
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="max-h-[60vh] overflow-y-auto p-1">
-                            <SessionFormFields form={form} playerNames={playerNames} />
-                        </div>
+                        <ScrollArea className="max-h-[70vh] p-1">
+                           <SessionFormFields form={form} playerNames={playerNames} />
+                        </ScrollArea>
                         <DialogFooter>
                             <DialogClose asChild>
                                 <Button type="button" variant="secondary">Cancel</Button>
@@ -668,46 +668,48 @@ export function SessionsTab() {
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Past Sessions</h3>
         <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-          <Table>
-            <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm">
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-right">Buy-in</TableHead>
-                <TableHead className="text-right">Total Pot</TableHead>
-                {playerNames.map((name) => (
-                  <TableHead key={name} className="text-right">{name}</TableHead>
-                ))}
-                <TableHead>Added By</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-                {loading && (
-                    Array.from({length: 3}).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
-                            <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                            {playerNames.map(p => <TableCell key={p}><Skeleton key={p} className="h-4 w-16 ml-auto" /></TableCell>)}
-                            <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                            <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
-                        </TableRow>
-                    ))
-                )}
-              {!loading && sessions.map((session: Session) => (
-                <SessionTableRow key={session.id} session={session} playerNames={playerNames} onDelete={handleDeleteSession} />
-              ))}
-              {!loading && sessions.length === 0 && (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm">
                 <TableRow>
-                    <TableCell colSpan={playerNames.length + 7} className="h-24 text-center">
-                        No sessions found. Add one to get started!
-                    </TableCell>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead className="text-right">Buy-in</TableHead>
+                  <TableHead className="text-right">Total Pot</TableHead>
+                  {playerNames.map((name) => (
+                    <TableHead key={name} className="text-right min-w-[120px]">{name}</TableHead>
+                  ))}
+                  <TableHead>Added By</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                  {loading && (
+                      Array.from({length: 3}).map((_, i) => (
+                          <TableRow key={i}>
+                              <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                              <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                              {playerNames.map(p => <TableCell key={p}><Skeleton key={p} className="h-4 w-16 ml-auto" /></TableCell>)}
+                              <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                              <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
+                          </TableRow>
+                      ))
+                  )}
+                {!loading && sessions.map((session: Session) => (
+                  <SessionTableRow key={session.id} session={session} playerNames={playerNames} onDelete={handleDeleteSession} />
+                ))}
+                {!loading && sessions.length === 0 && (
+                  <TableRow>
+                      <TableCell colSpan={playerNames.length + 7} className="h-24 text-center">
+                          No sessions found. Add one to get started!
+                      </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
@@ -718,4 +720,6 @@ export function SessionsTab() {
     </div>
   );
 }
+    
+
     
