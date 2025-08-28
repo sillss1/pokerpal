@@ -39,7 +39,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -184,30 +183,34 @@ function SessionCorrector({ form }: { form: any }) {
     const playerNames = useFirebase().playerNames;
     const watchedPlayerResults = form.watch(playerNames.map(name => `${name}.result`));
 
-    const { totalWins, totalLosses } = useMemo(() => {
+    const { totalWins, totalLosses, participatingPlayers } = useMemo(() => {
         let wins = 0;
         let losses = 0;
+        const participating: string[] = [];
         
         playerNames.forEach((name, index) => {
             const result = parseFloat(watchedPlayerResults[index]) || 0;
-            if (result > 0) wins += result;
-            if (result < 0) losses += result;
+            if (result !== 0) {
+                participating.push(name);
+                if (result > 0) wins += result;
+                if (result < 0) losses += result;
+            }
         });
 
-        return { totalWins: wins, totalLosses: losses };
+        return { totalWins: wins, totalLosses: losses, participatingPlayers: participating };
     }, [watchedPlayerResults, playerNames]);
     
     const balance = totalWins + totalLosses;
     const isBalanced = Math.abs(balance) < 0.01;
 
-    if (playerNames.length === 0 || (totalWins === 0 && totalLosses === 0)) {
+    if (participatingPlayers.length === 0) {
         return null;
     }
 
     return (
         <Card className="mt-4 bg-muted/50">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Balance</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base"><Scale/>Session Balance ({participatingPlayers.length} Playing)</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex flex-wrap gap-4">
@@ -247,12 +250,23 @@ function SessionTableRow({ session, playerNames, onDelete }: { session: Session;
             <TableCell>{session.location}</TableCell>
             <TableCell className="text-right">{(session.buyInAmount || 10).toFixed(2)}€</TableCell>
             <TableCell className="text-right font-semibold">{(session.totalPot || 0).toFixed(2)}€</TableCell>
-            {playerNames.map((name) => (
-                <TableCell key={name} className="text-right font-medium" style={{ color: (session.players[name]?.result ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
-                    {(session.players[name]?.result ?? 0).toFixed(2)}€
-                    <span className="text-xs text-muted-foreground ml-1">({session.players[name]?.buyIns || 0} BI)</span>
-                </TableCell>
-            ))}
+            {playerNames.map((name) => {
+                const playerData = session.players[name];
+                const didPlay = playerData && (playerData.result !== 0 || playerData.buyIns > 0);
+
+                return (
+                    <TableCell key={name} className="text-right font-medium">
+                        {didPlay ? (
+                            <span style={{ color: (playerData.result ?? 0) >= 0 ? 'hsl(var(--color-gain))' : 'hsl(var(--color-loss))' }}>
+                                {(playerData.result ?? 0).toFixed(2)}€
+                                <span className="text-xs text-muted-foreground ml-1">({playerData.buyIns || 0} BI)</span>
+                            </span>
+                        ) : (
+                            <span className="text-muted-foreground">N/J</span>
+                        )}
+                    </TableCell>
+                )
+            })}
             <TableCell>{session.addedBy}</TableCell>
             <TableCell className="text-center">
                 <div className="flex gap-2 justify-center">
@@ -290,7 +304,7 @@ export function SessionsTab() {
   
   const playerSchema = z.object({
     result: z.coerce.number().default(0),
-    buyIns: z.coerce.number().int().min(1, "Each player must have at least 1 buy-in.").default(1),
+    buyIns: z.coerce.number().int().min(0).default(0),
   });
 
   const formSchema = z.object({
@@ -303,17 +317,29 @@ export function SessionsTab() {
         return acc;
       }, {} as Record<string, z.ZodType<any, any>>),
     }).refine(data => {
-        const total = playerNames.reduce((sum, name) => sum + (data[name]?.result || 0), 0);
+        const participatingPlayers = playerNames.filter(name => data[name]?.result !== 0);
+        if (participatingPlayers.length === 0) return true; // No players, no validation needed
+
+        const total = participatingPlayers.reduce((sum, name) => sum + (data[name]?.result || 0), 0);
         return Math.abs(total) < 0.01; // Allow for floating point inaccuracies
     }, {
-        message: "The sum of all player results must be 0.",
+        message: "The sum of results for participating players must be 0.",
         path: [''] // General form error
+    }).refine(data => {
+        const participatingPlayers = playerNames.filter(name => data[name]?.result !== 0);
+        if (participatingPlayers.length === 0) {
+            return false;
+        }
+        return true;
+    }, {
+        message: "At least one player must have a non-zero result.",
+        path: ['']
     });
 
   const getInitialFormValues = useMemo(() => {
     return () => {
       const initialPlayerValues = playerNames.reduce((acc, name) => {
-          acc[name] = { result: 0, buyIns: 1 };
+          acc[name] = { result: 0, buyIns: 0 };
           return acc;
       }, {} as any);
   
@@ -335,19 +361,52 @@ export function SessionsTab() {
       form.reset(getInitialFormValues());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerNames, form]);
+
+  const handleResultChange = (name: string, value: number) => {
+      const currentBuyIns = form.getValues(`${name}.buyIns`);
+      if(value !== 0 && currentBuyIns === 0) {
+          form.setValue(`${name}.buyIns`, 1);
+      } else if (value === 0) {
+          form.setValue(`${name}.buyIns`, 0);
+      }
+      form.setValue(`${name}.result`, value);
+  }
+
+  const handleBuyInChange = (name: string, value: number) => {
+      const currentResult = form.getValues(`${name}.result`);
+      if (value > 0 && currentResult === 0) {
+          // You might want to leave the result as 0 and let the user fill it.
+          // Or set a default, but that could be confusing.
+      } else if (value === 0) {
+          form.setValue(`${name}.result`, 0);
+      }
+      form.setValue(`${name}.buyIns`, value);
+  }
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsAdding(true);
     
-    const playersResult: Record<string, SessionPlayer> = playerNames.reduce((acc, name) => {
-        acc[name] = {
-            result: values[name].result,
-            buyIns: values[name].buyIns
-        };
-        return acc;
-    }, {} as Record<string, SessionPlayer>);
+    const playersResult: Record<string, SessionPlayer> = {};
+    let totalBuyIns = 0;
 
-    const totalBuyIns = Object.values(playersResult).reduce((sum, player) => sum + (player.buyIns || 0), 0);
+    playerNames.forEach(name => {
+        const playerData = values[name];
+        // Only include players who participated (non-zero result)
+        if (playerData.result !== 0) {
+            playersResult[name] = {
+                result: playerData.result,
+                buyIns: playerData.buyIns
+            };
+            totalBuyIns += playerData.buyIns;
+        } else {
+            // Store them with 0 values to indicate they were present but didn't play
+             playersResult[name] = {
+                result: 0,
+                buyIns: 0
+            };
+        }
+    });
+
     const totalPot = values.buyInAmount * totalBuyIns;
 
     try {
@@ -426,7 +485,7 @@ export function SessionsTab() {
               <div className="flex justify-between items-center mb-1">
                 <div>
                     <FormLabel className="text-base font-medium">Player Details</FormLabel>
-                    <FormDescription>Enter results (win/loss) and number of buy-ins for each player.</FormDescription>
+                    <FormDescription>Enter results (win/loss) and number of buy-ins for each player. Results of 0 mean the player didn't play.</FormDescription>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-4 gap-y-6 mt-4">
@@ -436,7 +495,7 @@ export function SessionsTab() {
                      <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => handleResultChange(name, e.target.value === '' ? 0 : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>)}/>
                     <FormField control={form.control} name={`${name}.buyIns`} render={({ field }) => (
@@ -444,11 +503,11 @@ export function SessionsTab() {
                          <FormLabel className="flex items-center gap-1.5 text-sm"><Wallet className="w-4 h-4" />Buy-ins</FormLabel>
                          <FormControl>
                             <div className="flex items-center gap-2">
-                                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => form.setValue(`${name}.buyIns`, Math.max(1, (field.value || 1) - 1))}>
+                                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => handleBuyInChange(name, Math.max(0, (field.value || 0) - 1))}>
                                     <MinusCircle className="h-4 w-4"/>
                                 </Button>
-                                <Input className="h-8 text-center" type="number" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value, 10))} value={field.value ?? ''} />
-                                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => form.setValue(`${name}.buyIns`, (field.value || 0) + 1)}>
+                                <Input className="h-8 text-center" type="number" {...field} onChange={e => handleBuyInChange(name, e.target.value === '' ? 0 : parseInt(e.target.value, 10))} value={field.value ?? ''} />
+                                <Button type="button" size="icon" variant="outline" className="h-8 w-8" onClick={() => handleBuyInChange(name, (field.value || 0) + 1)}>
                                     <PlusCircle className="h-4 w-4"/>
                                 </Button>
                             </div>
@@ -475,7 +534,7 @@ export function SessionsTab() {
       
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Past Sessions</h3>
-        <ScrollArea className="h-[400px] w-full border rounded-md">
+        <div className="w-full overflow-auto border rounded-md">
           <Table>
             <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm">
               <TableRow>
@@ -516,7 +575,7 @@ export function SessionsTab() {
               )}
             </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
       </div>
 
       <div className="mt-8">
