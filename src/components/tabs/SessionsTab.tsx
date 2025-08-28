@@ -63,6 +63,7 @@ import {
     CommandItem,
     CommandList,
   } from "@/components/ui/command"
+import { Checkbox } from "../ui/checkbox";
 
 
 const addPlayerSchema = z.object({
@@ -346,7 +347,7 @@ function LocationCombobox({ field, form, locations, updateLocations, toast }: an
                     <CommandInput
                         placeholder="Search or add new location..."
                         value={inputValue}
-                        onValueChange={setInputValue}
+                        onValueValueChange={setInputValue}
                     />
                     <CommandList>
                         <CommandEmpty>
@@ -413,11 +414,11 @@ function SessionFormFields({ form, playerNames, locations }: { form: any, player
     
     const handleResultChange = (name: string, value: string) => {
         const currentBuyIns = form.getValues(`${name}.buyIns`);
-        const numericValue = parseFloat(value);
-        if(!isNaN(numericValue) && numericValue !== 0 && currentBuyIns === 0) {
+        form.setValue(`${name}.result`, value, { shouldValidate: true });
+        // Auto-add a buy-in if a result is entered for a player who has none
+        if (value && parseFloat(value) !== 0 && (currentBuyIns === 0 || !currentBuyIns)) {
             form.setValue(`${name}.buyIns`, 1, { shouldValidate: true });
         }
-        form.setValue(`${name}.result`, value, { shouldValidate: true });
     }
   
     const handleBuyInChange = (name: string, value: number) => {
@@ -425,6 +426,20 @@ function SessionFormFields({ form, playerNames, locations }: { form: any, player
             form.setValue(`${name}.result`, "0", { shouldValidate: true });
         }
         form.setValue(`${name}.buyIns`, value, { shouldValidate: true });
+    }
+
+    const handleLossToggle = (name: string, isLoss: boolean) => {
+        const currentRawValue = form.getValues(`${name}.result`) || "0";
+        const currentValue = parseFloat(currentRawValue.toString().replace(/[^0-9.-]/g, ''));
+        const absoluteValue = Math.abs(currentValue) || 0;
+        
+        form.setValue(`${name}.result`, isLoss ? `-${absoluteValue}`: `${absoluteValue}`, { shouldValidate: true });
+
+        // Auto-add a buy-in if a result is toggled for a player who has none
+        const currentBuyIns = form.getValues(`${name}.buyIns`);
+        if (absoluteValue !== 0 && (currentBuyIns === 0 || !currentBuyIns)) {
+            form.setValue(`${name}.buyIns`, 1, { shouldValidate: true });
+        }
     }
 
     return (
@@ -528,21 +543,42 @@ function SessionFormFields({ form, playerNames, locations }: { form: any, player
                          </FormControl>
                         <FormMessage />
                       </FormItem>)}/>
-                     <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
-                        <FormControl>
-                            <Input 
-                                type="text" 
-                                inputMode="decimal" 
-                                placeholder="0.00" 
-                                {...field} 
-                                onChange={e => handleResultChange(name, e.target.value)} 
-                                value={field.value ?? ''} 
-                            />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>)}/>
+                     <FormField control={form.control} name={`${name}.result`} render={({ field }) => {
+                        const fieldValue = field.value || "0";
+                        const isNegative = parseFloat(fieldValue) < 0;
+                        return (
+                         <FormItem>
+                           <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
+                           <div className="flex items-center gap-2">
+                            <FormControl>
+                                <Input 
+                                    type="text" 
+                                    inputMode="decimal" 
+                                    placeholder="0.00" 
+                                    value={field.value || ""} 
+                                    onChange={e => handleResultChange(name, e.target.value)} 
+                                />
+                            </FormControl>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`loss-${name}`}
+                                    checked={isNegative}
+                                    onCheckedChange={(checked) => {
+                                        handleLossToggle(name, !!checked);
+                                    }}
+                                />
+                                <label
+                                    htmlFor={`loss-${name}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                    Loss
+                                </label>
+                                </div>
+                            </div>
+                           <FormMessage />
+                         </FormItem>
+                        )}
+                    }/>
                   </div>
                 ))}
               </div>
