@@ -136,7 +136,7 @@ export function PokerPal() {
                <NavButton label="Sessões" icon={History} onClick={() => setActiveTab('sessions')} isActive={activeTab === 'sessions'} />
                <NavButton label="Ranking" icon={Trophy} onClick={() => setActiveTab('leaderboard')} isActive={activeTab === 'leaderboard'} />
                <NavButton label="Dívidas" icon={HandCoins} onClick={() => setActiveTab('debts')} isActive={activeTab === 'debts'} />
-               <NavButton label="Setup" icon={Settings} onClick={() => setActiveTab('setup')} isActive={active-dtab === 'setup'} />
+               <NavButton label="Setup" icon={Settings} onClick={() => setActiveTab('setup')} isActive={activeTab === 'setup'} />
             </div>
        </footer>
 
