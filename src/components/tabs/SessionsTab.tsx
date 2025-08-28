@@ -532,7 +532,7 @@ function SessionFormFields({ form, playerNames, locations }: { form: any, player
                      <FormField control={form.control} name={`${name}.result`} render={({ field }) => (
                       <FormItem>
                         <FormLabel className="flex items-center gap-1.5 text-sm"><Scale className="w-4 h-4"/>Result (€)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} onChange={e => handleResultChange(name, e.target.value === '' ? 0 : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
+                        <FormControl><Input type="text" inputMode="decimal" placeholder="0.00" {...field} onChange={e => handleResultChange(name, e.target.value === '' ? 0 : parseFloat(e.target.value))} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>)}/>
                   </div>
