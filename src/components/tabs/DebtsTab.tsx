@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -260,70 +260,76 @@ export function DebtsTab() {
             <div>
                 <h3 className="text-lg font-medium mb-2">Active Debts</h3>
                 <Card>
-                    <ScrollArea className="h-[250px]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="min-w-[100px]">Date</TableHead>
-                                    <TableHead className="min-w-[180px]">Transaction</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
-                                    <TableHead className="text-center">Action</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading && Array.from({length: 2}).map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                                        <TableCell className="text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
+                    <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                        <div className="max-h-[300px] overflow-y-auto">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm z-10">
+                                    <TableRow>
+                                        <TableHead className="min-w-[120px]">Date</TableHead>
+                                        <TableHead className="min-w-[200px]">Transaction</TableHead>
+                                        <TableHead className="min-w-[200px]">Description</TableHead>
+                                        <TableHead className="text-right min-w-[100px]">Amount</TableHead>
+                                        <TableHead className="text-center min-w-[120px]">Action</TableHead>
                                     </TableRow>
-                                ))}
-                                {!loading && activeDebts.map((debt: Debt) => (
-                                    <DebtRow key={debt.id} debt={debt} onSettle={handleSettleDebt} />
-                                ))}
-                                {!loading && activeDebts.length === 0 && (
-                                    <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No active debts. Good job!</TableCell></TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading && Array.from({length: 2}).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {!loading && activeDebts.map((debt: Debt) => (
+                                        <DebtRow key={debt.id} debt={debt} onSettle={handleSettleDebt} />
+                                    ))}
+                                    {!loading && activeDebts.length === 0 && (
+                                        <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No active debts. Good job!</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                 </Card>
             </div>
             <div>
                 <h3 className="text-lg font-medium mb-2">Settled Debts History</h3>
                 <Card>
-                    <ScrollArea className="h-[250px]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="min-w-[100px]">Settled On</TableHead>
-                                    <TableHead className="min-w-[180px]">Transaction</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
-                                    <TableHead className="text-center">Status</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading && Array.from({length: 1}).map((_, i) => (
-                                    <TableRow key={i}>
-                                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                                        <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                                        <TableCell className="text-center"><Skeleton className="h-4 w-20 mx-auto" /></TableCell>
+                    <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+                         <div className="max-h-[300px] overflow-y-auto">
+                            <Table>
+                                <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm z-10">
+                                    <TableRow>
+                                        <TableHead className="min-w-[120px]">Settled On</TableHead>
+                                        <TableHead className="min-w-[200px]">Transaction</TableHead>
+                                        <TableHead className="min-w-[200px]">Description</TableHead>
+                                        <TableHead className="text-right min-w-[100px]">Amount</TableHead>
+                                        <TableHead className="text-center min-w-[120px]">Status</TableHead>
                                     </TableRow>
-                                ))}
-                                {!loading && settledDebts.map((debt: Debt) => (
-                                    <DebtRow key={debt.id} debt={debt} onSettle={handleSettleDebt} />
-                                ))}
-                                {!loading && settledDebts.length === 0 && (
-                                    <TableRow><TableCell colSpan={5} className="h-24 text-center">No settled debts yet.</TableCell></TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading && Array.from({length: 1}).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                                            <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-4 w-20 mx-auto" /></TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {!loading && settledDebts.map((debt: Debt) => (
+                                        <DebtRow key={debt.id} debt={debt} onSettle={handleSettleDebt} />
+                                    ))}
+                                    {!loading && settledDebts.length === 0 && (
+                                        <TableRow><TableCell colSpan={5} className="h-24 text-center">No settled debts yet.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <ScrollBar orientation="horizontal" />
                     </ScrollArea>
                 </Card>
             </div>

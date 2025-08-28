@@ -188,33 +188,36 @@ function PlayerManagement() {
                 </Form>
                  <div>
                     <h4 className="font-semibold text-sm mb-2">Current Players ({playerNames.length}/10)</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {playerNames.map(name => (
-                            <div key={name} className="flex items-center gap-2 rounded-full border border-border bg-secondary text-secondary-foreground px-3 py-1 text-sm">
-                                {name}
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <button disabled={isUpdating} className="flex items-center justify-center w-4 h-4 rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors">
-                                            <Trash2 className="h-3 w-3" />
-                                        </button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will remove {name} from the game. They will still appear in past sessions, but you won't be able to add them to new ones. Are you sure?
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleRemovePlayer(name)} className="bg-destructive hover:bg-destructive/90">Remove Player</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        ))}
-                        {playerNames.length === 0 && <p className="text-sm text-muted-foreground">No players configured.</p>}
-                    </div>
+                    <ScrollArea className="w-full whitespace-nowrap">
+                        <div className="flex gap-2 pb-4">
+                            {playerNames.map(name => (
+                                <div key={name} className="flex items-center gap-2 rounded-full border border-border bg-secondary text-secondary-foreground px-3 py-1 text-sm">
+                                    {name}
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <button disabled={isUpdating} className="flex items-center justify-center w-4 h-4 rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground transition-colors">
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will remove {name} from the game. They will still appear in past sessions, but you won't be able to add them to new ones. Are you sure?
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleRemovePlayer(name)} className="bg-destructive hover:bg-destructive/90">Remove Player</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            ))}
+                            {playerNames.length === 0 && <p className="text-sm text-muted-foreground">No players configured.</p>}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                 </div>
             </CardContent>
         </Card>
@@ -850,19 +853,18 @@ export function SessionsTab() {
       <div className="mt-8">
         <h3 className="text-lg font-medium mb-4">Past Sessions</h3>
         <ScrollArea className="w-full whitespace-nowrap rounded-md border">
-          <div className="overflow-x-auto">
             <Table>
-              <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm">
+              <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-sm z-10">
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead className="text-right">Buy-in</TableHead>
-                  <TableHead className="text-right">Total Pot</TableHead>
+                  <TableHead className="min-w-[120px]">Date</TableHead>
+                  <TableHead className="min-w-[150px]">Location</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Buy-in</TableHead>
+                  <TableHead className="text-right min-w-[100px]">Total Pot</TableHead>
                   {playerNames.map((name) => (
-                    <TableHead key={name} className="text-right min-w-[120px]">{name}</TableHead>
+                    <TableHead key={name} className="text-right min-w-[150px]">{name}</TableHead>
                   ))}
-                  <TableHead>Added By</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="min-w-[120px]">Added By</TableHead>
+                  <TableHead className="text-center min-w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -873,9 +875,9 @@ export function SessionsTab() {
                               <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
                               <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                              {playerNames.map(p => <TableCell key={p}><Skeleton key={p} className="h-4 w-16 ml-auto" /></TableCell>)}
+                              {playerNames.map(p => <TableCell key={p}><Skeleton key={p} className="h-4 w-24 ml-auto" /></TableCell>)}
                               <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                              <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-24 mx-auto" /></TableCell>
+                              <TableCell className="space-x-2 text-center"><Skeleton className="h-8 w-20 mx-auto" /></TableCell>
                           </TableRow>
                       ))
                   )}
@@ -891,7 +893,6 @@ export function SessionsTab() {
                 )}
               </TableBody>
             </Table>
-          </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
