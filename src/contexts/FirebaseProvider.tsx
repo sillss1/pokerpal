@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getFirestore, onSnapshot, collection, doc, updateDoc, Firestore, addDoc, Timestamp, writeBatch, deleteDoc, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, onSnapshot, collection, doc, updateDoc, Firestore, addDoc, Timestamp, writeBatch, deleteDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { FirebaseConfig, Session, Debt } from '@/lib/types';
 import { getFirebaseConfig } from '@/lib/firebase-config';
 
@@ -100,15 +100,12 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
 
 
             const sessionsCollection = collection(firestore, 'homeGames', homeGameCode, 'sessions');
-            sessionsUnsubscribe = onSnapshot(sessionsCollection, (snapshot) => {
+            const sessionsQuery = query(sessionsCollection, orderBy("timestamp", "desc"));
+            sessionsUnsubscribe = onSnapshot(sessionsQuery, (snapshot) => {
                 const sessionsData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
-                } as Session)).sort((a, b) => {
-                    const dateA = a.timestamp ? a.timestamp.toMillis() : new Date(a.date).getTime();
-                    const dateB = b.timestamp ? b.timestamp.toMillis() : new Date(b.date).getTime();
-                    return dateB - dateA;
-                });
+                } as Session));
                 setSessions(sessionsData);
                 setLoading(false);
             }, (err) => {
@@ -119,16 +116,15 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
             });
 
             const debtsCollection = collection(firestore, 'homeGames', homeGameCode, 'debts');
-            debtsUnsubscribe = onSnapshot(debtsCollection, (snapshot) => {
+            const debtsQuery = query(debtsCollection, orderBy("date", "desc"));
+            debtsUnsubscribe = onSnapshot(debtsQuery, (snapshot) => {
                 const debtsData = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data(),
                 } as Debt)).sort((a, b) => {
                     if (a.settled && !b.settled) return 1;
                     if (!a.settled && b.settled) return -1;
-                    const dateA = a.date ? a.date.toMillis() : 0;
-                    const dateB = b.date ? b.date.toMillis() : 0;
-                    return dateB - dateA;
+                    return 0; // The primary sort is already done by Firestore
                 });
                 setDebts(debtsData);
             }, (err) => {
@@ -193,7 +189,7 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
 
     if (debt.sessionId && debt.sessionDate) {
       debtPayload.sessionId = debt.sessionId;
-      debtPayload.sessionDate = debt.sessionDate;
+      debtPayload.sessionDate = Timestamp.fromDate(new Date(debt.sessionDate));
     }
 
     await addDoc(debtsCollection, debtPayload);

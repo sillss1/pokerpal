@@ -35,7 +35,7 @@ export interface PlayerStats {
 export interface Debt {
   id: string;
   sessionId?: string;
-  sessionDate?: string;
+  sessionDate?: string | Timestamp;
   description: string;
   fromPlayer: string;
   toPlayer: string;
