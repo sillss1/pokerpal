@@ -22,6 +22,7 @@ interface FirebaseContextType {
   addDebt: (debt: Omit<Debt, 'id' | 'date' | 'settled' | 'settledDate'>) => Promise<void>;
   settleDebt: (debtId: string) => Promise<void>;
   addSession: (session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
+  updateSession: (sessionId: string, session: Omit<Session, 'id' | 'timestamp'>) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   markSessionSettled: (sessionId: string) => Promise<void>;
 }
@@ -119,7 +120,9 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
                 } as Debt)).sort((a, b) => {
                     if (a.settled && !b.settled) return 1;
                     if (!a.settled && b.settled) return -1;
-                    return b.date.toMillis() - a.date.toMillis()
+                    const dateA = a.date ? a.date.toMillis() : 0;
+                    const dateB = b.date ? b.date.toMillis() : 0;
+                    return dateB - dateA;
                 });
                 setDebts(debtsData);
             }, (err) => {
@@ -199,6 +202,15 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     });
   }, [db, homeGameCode]);
 
+  const updateSession = useCallback(async (sessionId: string, session: Omit<Session, 'id' | 'timestamp'>) => {
+    if (!db || !homeGameCode) throw new Error("Database not connected.");
+    const sessionDocRef = doc(db, 'homeGames', homeGameCode, "sessions", sessionId);
+    await updateDoc(sessionDocRef, {
+        ...session,
+        timestamp: Timestamp.now(), // Update timestamp on edit
+    });
+  }, [db, homeGameCode]);
+
   const deleteSession = useCallback(async (sessionId: string) => {
     if(!db || !homeGameCode) throw new Error("Database not connected.");
     
@@ -238,6 +250,7 @@ export const FirebaseProvider = ({ children, homeGameCode }: { children: ReactNo
     addDebt,
     settleDebt,
     addSession,
+    updateSession,
     deleteSession,
     markSessionSettled,
   };
