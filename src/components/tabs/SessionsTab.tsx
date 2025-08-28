@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -282,10 +283,12 @@ function SessionCorrector({ form }: { form: any }) {
 
 function LocationCombobox({ field, form, locations, updateLocations, toast }: any) {
     const [open, setOpen] = useState(false);
+    const [inputValue, setInputValue] = useState("");
   
     const handleSelectLocation = (currentValue: string) => {
-      form.setValue("location", currentValue === field.value ? "" : currentValue)
-      setOpen(false)
+        form.setValue("location", currentValue);
+        setInputValue("");
+        setOpen(false);
     }
 
     const handleAddNewLocation = async (newLocation: string) => {
@@ -297,74 +300,110 @@ function LocationCombobox({ field, form, locations, updateLocations, toast }: an
             toast({ variant: "destructive", title: "Error", description: "Failed to add location." });
           }
         }
-        form.setValue("location", newLocation);
-        setOpen(false);
-      };
+        handleSelectLocation(newLocation);
+    };
+
+    const handleRemoveLocation = async (locationToRemove: string) => {
+        const newLocations = locations.filter((loc: string) => loc !== locationToRemove);
+        try {
+            await updateLocations(newLocations);
+            if (form.getValues("location") === locationToRemove) {
+                form.setValue("location", "");
+            }
+            toast({ title: "Location Removed" });
+        } catch(e) {
+            toast({ variant: "destructive", title: "Error", description: "Failed to remove location." });
+        }
+    }
   
     return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              role="combobox"
-              className={cn(
-                "w-full justify-between",
-                !field.value && "text-muted-foreground"
-              )}
-            >
-              {field.value
-                ? locations.find(
-                    (location: string) => location === field.value
-                  )
-                : "Select a location"}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-          <Command>
-            <CommandInput 
-                placeholder="Search or add new location..."
-                onKeyDownCapture={(e) => {
-                    if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
-                      e.preventDefault();
-                      handleAddNewLocation(e.target.value);
-                    }
-                  }}
-            />
-            <CommandList>
-                <CommandEmpty>
-                    <button 
-                        className="text-sm w-full text-left p-2 hover:bg-accent rounded-md"
-                        onClick={(e) => {
-                            const inputValue = (e.currentTarget.closest('.cmdk-root')?.querySelector('input'))?.value || '';
-                            handleAddNewLocation(inputValue);
-                        }}>
-                        Add "{form.watch('location')}" as a new location
-                    </button>
-                </CommandEmpty>
-                <CommandGroup>
-                {locations.map((location: string) => (
-                  <CommandItem
-                    value={location}
-                    key={location}
-                    onSelect={handleSelectLocation}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        location === field.value ? "opacity-100" : "opacity-0"
-                      )}
+        <Popover open={open} onOpenChange={(isOpen) => {
+            setOpen(isOpen);
+            if (!isOpen) {
+                const currentValue = form.getValues("location");
+                if (inputValue && !locations.includes(inputValue) && currentValue !== inputValue) {
+                    handleAddNewLocation(inputValue);
+                }
+            }
+        }}>
+            <PopoverTrigger asChild>
+                <FormControl>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                        )}
+                    >
+                        {field.value || "Select or add a location"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput
+                        placeholder="Search or add new location..."
+                        value={inputValue}
+                        onValueChange={setInputValue}
                     />
-                    {location}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+                    <CommandList>
+                        <CommandEmpty>
+                            <button
+                                type="button"
+                                className="text-sm w-full text-left p-2 hover:bg-accent rounded-md"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleAddNewLocation(inputValue);
+                                }}
+                            >
+                                Add "{inputValue}" as a new location
+                            </button>
+                        </CommandEmpty>
+                        <CommandGroup>
+                            {locations.map((location: string) => (
+                                <CommandItem
+                                    value={location}
+                                    key={location}
+                                    onSelect={handleSelectLocation}
+                                    className="flex justify-between items-center"
+                                >
+                                    <span>
+                                        <Check className={cn("mr-2 h-4 w-4", location === field.value ? "opacity-100" : "opacity-0")} />
+                                        {location}
+                                    </span>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-6 w-6"
+                                                onClick={(e) => { e.stopPropagation(); }} // Stop propagation to prevent selecting the item
+                                            >
+                                                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Remove {location}?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Are you sure you want to remove this location? This cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleRemoveLocation(location)} className="bg-destructive hover:bg-destructive/90">Remove</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     )
   }
 
@@ -869,4 +908,5 @@ export function SessionsTab() {
     
 
     
+
 
