@@ -107,7 +107,7 @@ export function LeaderboardTab() {
   return (
     <div className="space-y-8">
         <div>
-            <h3 className="text-lg font-medium mb-4">Ranking de Jogadores</h3>
+            <h3 className="text-lg font-medium mb-4">Player Rankings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {playerStats.map((player, index) => (
                 <Card key={player.name} className={`transition-all border-2 ${getRankingColor(index)}`}>
@@ -125,13 +125,13 @@ export function LeaderboardTab() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-2">
-                    <StatCard icon={Swords} label="Sessões Jogadas" value={player.totalSessions} />
-                    <StatCard icon={Percent} label="Taxa de Vitória" value={`${player.winRate}%`} />
-                    <StatCard icon={Wallet} label="Média Buy-ins / Sessão" value={player.averageBuyIns} />
-                    <StatCard icon={Target} label="Sessões Ganhas" value={player.sessionsWon} />
-                    <StatCard icon={TrendingDown} label="Sessões Perdidas" value={player.sessionsLost} />
-                    <StatCard icon={TrendingUp} label="Maior Vitória" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
-                    <StatCard icon={TrendingDown} label="Maior Derrota" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
+                    <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
+                    <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
+                    <StatCard icon={Wallet} label="Avg. Buy-ins / Session" value={player.averageBuyIns} />
+                    <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
+                    <StatCard icon={TrendingDown} label="Sessions Lost" value={player.sessionsLost} />
+                    <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
+                    <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
                   </CardContent>
                 </Card>
               ))}

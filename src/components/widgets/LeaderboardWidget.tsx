@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Crown, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { ScrollArea } from '../ui/scroll-area';
+import { Button } from '../ui/button';
 
 const getMedalColor = (rank: number) => {
     if (rank === 0) return "text-primary";
@@ -27,7 +28,7 @@ const PlayerRow = ({ player, rank }: { player: PlayerStats, rank: number }) => (
                 {player.totalWinnings.toFixed(2)}€
             </p>
         </div>
-        <div className="hidden sm:flex items-center gap-1 w-20 justify-end" title="Sessões Ganhas / Perdidas">
+        <div className="hidden sm:flex items-center gap-1 w-20 justify-end" title="Sessions Won / Lost">
             <TrendingUp className="w-4 h-4 text-gain" />
             <span className="text-sm text-gain">{player.sessionsWon}</span>
             <span className="text-sm text-muted-foreground">/</span>
@@ -65,6 +66,7 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
                 if (stats[playerName] && data && data.buyIns > 0) {
                     const result = data.result;
                     stats[playerName].totalWinnings += result;
+                    stats[playerName].totalSessions += 1;
                     if (result > 0) {
                         stats[playerName].sessionsWon += 1;
                     } else if (result < 0) {
@@ -113,11 +115,12 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
 
     return (
         <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                     <CardTitle className="flex items-center gap-2"><Trophy /> Player Rankings</CardTitle>
                     <CardDescription>Current player standings by total winnings.</CardDescription>
                 </div>
+                 <Button variant="link" onClick={onSeeMore}>See leaderboard</Button>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-[200px]">

@@ -94,10 +94,10 @@ export function PokerPal() {
 
   const getTitle = () => {
     switch (activeTab) {
-      case "sessions": return "Histórico de Sessões";
+      case "sessions": return "Session History";
       case "leaderboard": return "Leaderboard";
-      case "debts": return "Gestão de Dívidas";
-      case "setup": return "Configurações";
+      case "debts": return "Debt Management";
+      case "setup": return "Settings";
       default: return "Dashboard";
     }
   };
@@ -110,7 +110,7 @@ export function PokerPal() {
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             PokerPal
           </h1>
-          <p className="text-muted-foreground">O seu tracker de poker amigável</p>
+          <p className="text-muted-foreground">Your friendly poker session tracker</p>
         </div>
       </header>
 
@@ -118,7 +118,7 @@ export function PokerPal() {
         {activeTab !== 'dashboard' && (
             <Button variant="outline" onClick={() => setActiveTab('dashboard')} className="mb-4 gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                Voltar à Dashboard
+                Back to Dashboard
             </Button>
         )}
         <Card>
@@ -133,9 +133,9 @@ export function PokerPal() {
 
        <footer className="fixed bottom-0 left-0 right-0 md:hidden bg-background/80 backdrop-blur-sm border-t p-2">
             <div className="flex justify-around items-center">
-               <NavButton label="Sessões" icon={History} onClick={() => setActiveTab('sessions')} isActive={activeTab === 'sessions'} />
+               <NavButton label="Sessions" icon={History} onClick={() => setActiveTab('sessions')} isActive={activeTab === 'sessions'} />
                <NavButton label="Ranking" icon={Trophy} onClick={() => setActiveTab('leaderboard')} isActive={activeTab === 'leaderboard'} />
-               <NavButton label="Dívidas" icon={HandCoins} onClick={() => setActiveTab('debts')} isActive={activeTab === 'debts'} />
+               <NavButton label="Debts" icon={HandCoins} onClick={() => setActiveTab('debts')} isActive={activeTab === 'debts'} />
                <NavButton label="Setup" icon={Settings} onClick={() => setActiveTab('setup')} isActive={activeTab === 'setup'} />
             </div>
        </footer>
