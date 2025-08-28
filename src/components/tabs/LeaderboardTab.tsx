@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useFirebase } from "@/contexts/FirebaseProvider";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PlayerStats, Session } from "@/lib/types";
-import { Crown, TrendingUp, TrendingDown, Swords, Percent, Target, Trophy, Wallet } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlayerStats } from "@/lib/types";
+import { Crown, TrendingUp, TrendingDown, Swords, Percent, Target, Wallet } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
-import { format } from "date-fns";
 
 const getRankingColor = (rank: number) => {
   switch (rank) {
@@ -29,40 +28,8 @@ const StatCard = ({ icon: Icon, label, value, className }: { icon: React.Element
     </div>
 );
 
-function BiggestSessionRow({ session, index }: { session: Session; index: number }) {
-    const [formattedDate, setFormattedDate] = useState("");
-
-    useEffect(() => {
-        if (session.date) {
-            setFormattedDate(format(new Date(session.date), "PPP"));
-        }
-    }, [session.date]);
-
-    return (
-        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-            <div className="flex items-center gap-3">
-                <Trophy className={`w-6 h-6 ${index === 0 ? "text-primary" : "text-muted-foreground"}`} />
-                <div>
-                    <p className="font-semibold">{session.location}</p>
-                    <p className="text-sm text-muted-foreground">{formattedDate}</p>
-                </div>
-            </div>
-            <p className="font-bold text-xl text-primary">{(session.totalPot || 0).toFixed(2)}€</p>
-        </div>
-    );
-}
-
 export function LeaderboardTab() {
   const { sessions, playerNames, loading } = useFirebase();
-  const [biggestSessions, setBiggestSessions] = useState<Session[]>([]);
-
-  useEffect(() => {
-      const sortedSessions = [...sessions]
-        .sort((a, b) => (b.totalPot || 0) - (a.totalPot || 0))
-        .slice(0, 5);
-      setBiggestSessions(sortedSessions);
-  }, [sessions]);
-
 
   const playerStats = useMemo<PlayerStats[]>(() => {
     if (!sessions || !playerNames) return [];
@@ -83,7 +50,7 @@ export function LeaderboardTab() {
       return acc;
     }, {} as { [key: string]: PlayerStats });
 
-    sessions.forEach((session: Session) => {
+    sessions.forEach((session) => {
       Object.entries(session.players).forEach(([playerName, data]) => {
         if (stats[playerName] && data) { // Check if data exists
           const result = data.result;
@@ -124,12 +91,6 @@ export function LeaderboardTab() {
                     <Card key={i}><CardHeader><Skeleton className="h-6 w-24" /></CardHeader><CardContent className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /></CardContent></Card>
                 ))}
             </div>
-            <Card>
-                <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
-                <CardContent className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
-                </CardContent>
-            </Card>
         </div>
     )
   }
@@ -145,7 +106,7 @@ export function LeaderboardTab() {
   return (
     <div className="space-y-8">
         <div>
-            <h3 className="text-lg font-medium mb-4">Player Rankings</h3>
+            <h3 className="text-lg font-medium mb-4">Ranking de Jogadores</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {playerStats.map((player, index) => (
                 <Card key={player.name} className={`transition-all border-2 ${getRankingColor(index)}`}>
@@ -163,33 +124,17 @@ export function LeaderboardTab() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-2">
-                    <StatCard icon={Swords} label="Sessions Played" value={player.totalSessions} />
-                    <StatCard icon={Percent} label="Win Rate" value={`${player.winRate}%`} />
-                    <StatCard icon={Wallet} label="Avg. Buy-ins / Session" value={player.averageBuyIns} />
-                    <StatCard icon={Target} label="Sessions Won" value={player.sessionsWon} />
-                    <StatCard icon={TrendingDown} label="Sessions Lost" value={player.sessionsLost} />
-                    <StatCard icon={TrendingUp} label="Biggest Win" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
-                    <StatCard icon={TrendingDown} label="Biggest Loss" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
+                    <StatCard icon={Swords} label="Sessões Jogadas" value={player.totalSessions} />
+                    <StatCard icon={Percent} label="Taxa de Vitória" value={`${player.winRate}%`} />
+                    <StatCard icon={Wallet} label="Média Buy-ins / Sessão" value={player.averageBuyIns} />
+                    <StatCard icon={Target} label="Sessões Ganhas" value={player.sessionsWon} />
+                    <StatCard icon={TrendingDown} label="Sessões Perdidas" value={player.sessionsLost} />
+                    <StatCard icon={TrendingUp} label="Maior Vitória" value={`${player.biggestWin.toFixed(2)}€`} className="text-gain" />
+                    <StatCard icon={TrendingDown} label="Maior Derrota" value={`${player.biggestLoss.toFixed(2)}€`} className="text-loss" />
                   </CardContent>
                 </Card>
               ))}
             </div>
-        </div>
-        <div>
-            <h3 className="text-lg font-medium mb-4">Biggest Sessions by Volume</h3>
-            <Card>
-                <CardContent className="pt-6">
-                    {biggestSessions.length > 0 ? (
-                         <div className="space-y-4">
-                            {biggestSessions.map((session, index) => (
-                                <BiggestSessionRow key={session.id} session={session} index={index} />
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center text-muted-foreground py-4">No sessions recorded yet.</p>
-                    )}
-                </CardContent>
-            </Card>
         </div>
     </div>
   );

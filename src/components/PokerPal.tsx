@@ -1,15 +1,107 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
 import { SetupTab } from "./tabs/SetupTab";
 import { SessionsTab } from "./tabs/SessionsTab";
 import { LeaderboardTab } from "./tabs/LeaderboardTab";
 import { DebtsTab } from "./tabs/DebtsTab";
-import { Trophy, History, Settings, HandCoins } from "lucide-react";
+import { Trophy, History, Settings, HandCoins, ArrowLeft, PlusCircle } from "lucide-react";
 import { PokerChipIcon } from "./icons/PokerChipIcon";
+import { Button } from "./ui/button";
+import { LeaderboardWidget } from "./widgets/LeaderboardWidget";
+import { BiggestPotsWidget } from "./widgets/BiggestPotsWidget";
+
+type ActiveTab = "dashboard" | "sessions" | "leaderboard" | "debts" | "setup";
+
+interface NavButtonProps {
+  label: string;
+  icon: React.ElementType;
+  onClick: () => void;
+  isActive: boolean;
+}
+
+const NavButton = ({ label, icon: Icon, onClick, isActive }: NavButtonProps) => (
+    <Button 
+        variant={isActive ? "secondary" : "ghost"} 
+        className="flex-1 justify-center gap-2"
+        onClick={onClick}
+    >
+        <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+        {label}
+    </Button>
+);
+
+
+function MainDashboard({ setActiveTab }: { setActiveTab: (tab: ActiveTab) => void }) {
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <LeaderboardWidget onSeeMore={() => setActiveTab('leaderboard')} />
+                <BiggestPotsWidget onSeeMore={() => setActiveTab('sessions')}/>
+            </div>
+
+            <div>
+                <h3 className="text-lg font-medium mb-4">Ações Rápidas</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <Card 
+                        className="p-6 flex flex-col items-center justify-center text-center gap-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => setActiveTab('sessions')}
+                    >
+                        <div className="p-3 bg-primary/10 rounded-full">
+                            <History className="w-8 h-8 text-primary" />
+                        </div>
+                        <div className="flex-grow">
+                            <h4 className="font-semibold text-lg">Adicionar Sessão</h4>
+                            <p className="text-sm text-muted-foreground">Registe os resultados de uma nova sessão de jogo.</p>
+                        </div>
+                    </Card>
+                    <Card 
+                        className="p-6 flex flex-col items-center justify-center text-center gap-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => setActiveTab('debts')}
+                    >
+                        <div className="p-3 bg-primary/10 rounded-full">
+                             <HandCoins className="w-8 h-8 text-primary" />
+                        </div>
+                        <div className="flex-grow">
+                            <h4 className="font-semibold text-lg">Gerir Dívidas</h4>
+                            <p className="text-sm text-muted-foreground">Registe ou liquide dívidas entre jogadores.</p>
+                        </div>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export function PokerPal() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "sessions":
+        return <SessionsTab />;
+      case "leaderboard":
+        return <LeaderboardTab />;
+      case "debts":
+        return <DebtsTab />;
+      case "setup":
+        return <SetupTab />;
+      default:
+        return <MainDashboard setActiveTab={setActiveTab} />;
+    }
+  };
+
+  const getTitle = () => {
+    switch (activeTab) {
+      case "sessions": return "Histórico de Sessões";
+      case "leaderboard": return "Leaderboard";
+      case "debts": return "Gestão de Dívidas";
+      case "setup": return "Configurações";
+      default: return "Dashboard";
+    }
+  };
+  
   return (
     <div className="max-w-7xl mx-auto w-full">
       <header className="flex items-center gap-4 mb-6">
@@ -18,82 +110,36 @@ export function PokerPal() {
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
             PokerPal
           </h1>
-          <p className="text-muted-foreground">Your friendly poker session tracker</p>
+          <p className="text-muted-foreground">O seu tracker de poker amigável</p>
         </div>
       </header>
 
-      <Tabs defaultValue="sessions" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-background/50 backdrop-blur-sm">
-          <TabsTrigger value="sessions">
-            <History className="w-4 h-4 mr-2" />
-            Sessions
-          </TabsTrigger>
-          <TabsTrigger value="leaderboard">
-            <Trophy className="w-4 h-4 mr-2" />
-            Leaderboard
-          </TabsTrigger>
-          <TabsTrigger value="debts">
-            <HandCoins className="w-4 h-4 mr-2" />
-            Debts
-          </TabsTrigger>
-          <TabsTrigger value="setup">
-            <Settings className="w-4 h-4 mr-2" />
-            Setup
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="sessions">
-          <Card>
-            <CardHeader>
-              <CardTitle>Session History</CardTitle>
-              <CardDescription>
-                Log a new session or view past results.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SessionsTab />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="leaderboard">
-          <Card>
-            <CardHeader>
-              <CardTitle>Leaderboard</CardTitle>
-              <CardDescription>
-                See who's on top and view player statistics.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LeaderboardTab />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="debts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Debt Management</CardTitle>
-              <CardDescription>
-                Manually record and settle debts between players.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DebtsTab />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="setup">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuration & Settings</CardTitle>
-              <CardDescription>
-                View current configuration or reset to connect to a new group.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SetupTab />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <main>
+        {activeTab !== 'dashboard' && (
+            <Button variant="outline" onClick={() => setActiveTab('dashboard')} className="mb-4 gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Voltar à Dashboard
+            </Button>
+        )}
+        <Card>
+            <Card.Header>
+                <Card.Title className="text-2xl">{getTitle()}</Card.Title>
+            </Card.Header>
+            <Card.Content>
+                 {renderContent()}
+            </Card.Content>
+        </Card>
+      </main>
+
+       <footer className="fixed bottom-0 left-0 right-0 md:hidden bg-background/80 backdrop-blur-sm border-t p-2">
+            <div className="flex justify-around items-center">
+               <NavButton label="Sessões" icon={History} onClick={() => setActiveTab('sessions')} isActive={activeTab === 'sessions'} />
+               <NavButton label="Ranking" icon={Trophy} onClick={() => setActiveTab('leaderboard')} isActive={activeTab === 'leaderboard'} />
+               <NavButton label="Dívidas" icon={HandCoins} onClick={() => setActiveTab('debts')} isActive={activeTab === 'debts'} />
+               <NavButton label="Setup" icon={Settings} onClick={() => setActiveTab('setup')} isActive={activeTab === 'setup'} />
+            </div>
+       </footer>
+
     </div>
   );
 }
