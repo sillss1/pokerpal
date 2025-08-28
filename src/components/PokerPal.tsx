@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SetupTab } from "./tabs/SetupTab";
 import { SessionsTab } from "./tabs/SessionsTab";
 import { LeaderboardTab } from "./tabs/LeaderboardTab";
@@ -122,12 +122,12 @@ export function PokerPal() {
             </Button>
         )}
         <Card>
-            <Card.Header>
-                <Card.Title className="text-2xl">{getTitle()}</Card.Title>
-            </Card.Header>
-            <Card.Content>
+            <CardHeader>
+                <CardTitle className="text-2xl">{getTitle()}</CardTitle>
+            </CardHeader>
+            <CardContent>
                  {renderContent()}
-            </Card.Content>
+            </CardContent>
         </Card>
       </main>
 
@@ -136,7 +136,7 @@ export function PokerPal() {
                <NavButton label="Sessões" icon={History} onClick={() => setActiveTab('sessions')} isActive={activeTab === 'sessions'} />
                <NavButton label="Ranking" icon={Trophy} onClick={() => setActiveTab('leaderboard')} isActive={activeTab === 'leaderboard'} />
                <NavButton label="Dívidas" icon={HandCoins} onClick={() => setActiveTab('debts')} isActive={activeTab === 'debts'} />
-               <NavButton label="Setup" icon={Settings} onClick={() => setActiveTab('setup')} isActive={activeTab === 'setup'} />
+               <NavButton label="Setup" icon={Settings} onClick={() => setActiveTab('setup')} isActive={active-dtab === 'setup'} />
             </div>
        </footer>
 
