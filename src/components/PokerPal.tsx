@@ -42,7 +42,7 @@ function MainDashboard({ setActiveTab }: { setActiveTab: (tab: ActiveTab) => voi
             </div>
 
             <div>
-                <h3 className="text-lg font-medium mb-4">Ações Rápidas</h3>
+                <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      <Card 
                         className="p-6 flex flex-col items-center justify-center text-center gap-4 hover:bg-muted/50 cursor-pointer transition-colors"
@@ -52,8 +52,8 @@ function MainDashboard({ setActiveTab }: { setActiveTab: (tab: ActiveTab) => voi
                             <History className="w-8 h-8 text-primary" />
                         </div>
                         <div className="flex-grow">
-                            <h4 className="font-semibold text-lg">Adicionar Sessão</h4>
-                            <p className="text-sm text-muted-foreground">Registe os resultados de uma nova sessão de jogo.</p>
+                            <h4 className="font-semibold text-lg">Add Session</h4>
+                            <p className="text-sm text-muted-foreground">Log the results of a new game session.</p>
                         </div>
                     </Card>
                     <Card 
@@ -64,8 +64,8 @@ function MainDashboard({ setActiveTab }: { setActiveTab: (tab: ActiveTab) => voi
                              <HandCoins className="w-8 h-8 text-primary" />
                         </div>
                         <div className="flex-grow">
-                            <h4 className="font-semibold text-lg">Gerir Dívidas</h4>
-                            <p className="text-sm text-muted-foreground">Registe ou liquide dívidas entre jogadores.</p>
+                            <h4 className="font-semibold text-lg">Manage Debts</h4>
+                            <p className="text-sm text-muted-foreground">Record or settle debts between players.</p>
                         </div>
                     </Card>
                 </div>
