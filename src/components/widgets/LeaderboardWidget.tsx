@@ -6,7 +6,7 @@ import { PlayerStats } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Crown, Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
-import { Button } from '../ui/button';
+import { ScrollArea } from '../ui/scroll-area';
 
 const getMedalColor = (rank: number) => {
     if (rank === 0) return "text-primary";
@@ -16,7 +16,7 @@ const getMedalColor = (rank: number) => {
 }
 
 const PlayerRow = ({ player, rank }: { player: PlayerStats, rank: number }) => (
-    <div className="flex items-center gap-4 py-2">
+    <div className="flex items-center gap-4 py-2 pr-4">
         <div className="flex items-center gap-2 w-1/3">
             <span className={`font-bold w-5 text-center ${getMedalColor(rank)}`}>{rank + 1}</span>
             <Crown className={`w-5 h-5 ${getMedalColor(rank)}`} />
@@ -40,7 +40,7 @@ const PlayerRow = ({ player, rank }: { player: PlayerStats, rank: number }) => (
 export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
     const { sessions, playerNames, loading } = useFirebase();
 
-    const topPlayers = useMemo<PlayerStats[]>(() => {
+    const allPlayers = useMemo<PlayerStats[]>(() => {
         if (!sessions || !playerNames) return [];
 
         const stats: { [key: string]: PlayerStats } = playerNames.reduce((acc, name) => {
@@ -75,8 +75,7 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
         });
 
         return Object.values(stats)
-            .sort((a, b) => b.totalWinnings - a.totalWinnings)
-            .slice(0, 3);
+            .sort((a, b) => b.totalWinnings - a.totalWinnings);
 
     }, [sessions, playerNames]);
 
@@ -95,17 +94,17 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
             )
         }
 
-        if (topPlayers.length === 0) {
+        if (allPlayers.length === 0) {
             return (
                 <div className="text-center text-muted-foreground py-6">
-                    No data to show the podium. Add a session!
+                    No data to show rankings. Add a session!
                 </div>
             );
         }
 
         return (
             <div className="space-y-1">
-                {topPlayers.map((player, index) => (
+                {allPlayers.map((player, index) => (
                     <PlayerRow key={player.name} player={player} rank={index} />
                 ))}
             </div>
@@ -114,15 +113,16 @@ export function LeaderboardWidget({ onSeeMore }: { onSeeMore: () => void }) {
 
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
                 <div>
-                    <CardTitle className="flex items-center gap-2"><Trophy /> Podium</CardTitle>
-                    <CardDescription>The top 3 players.</CardDescription>
+                    <CardTitle className="flex items-center gap-2"><Trophy /> Player Rankings</CardTitle>
+                    <CardDescription>Current player standings by total winnings.</CardDescription>
                 </div>
-                <Button variant="link" onClick={onSeeMore}>See All</Button>
             </CardHeader>
             <CardContent>
-                {renderContent()}
+                <ScrollArea className="h-[200px]">
+                    {renderContent()}
+                </ScrollArea>
             </CardContent>
         </Card>
     );
